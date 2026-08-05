@@ -7,6 +7,8 @@ import { Quiz, AppSettings, Participant } from '../../types';
 import { getQuizById, getQuizzes, getAppSettings, saveParticipant } from '../../services/db';
 import { BookOpen, Clock, FileText, UserCheck, ShieldAlert, ArrowRight, LogIn } from 'lucide-react';
 
+import { SchoolLogo } from '../../components/common/SchoolLogo';
+
 export const StudentEntrance: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
@@ -115,7 +117,10 @@ export const StudentEntrance: React.FC = () => {
       <div className="w-full max-w-xl space-y-6">
         {/* School Kop */}
         <div className="text-center space-y-2">
-          <img src={settings?.schoolLogoUrl || '/logo.jpg'} alt="Logo Sekolah" className="w-20 h-20 mx-auto object-contain drop-shadow-sm" />
+          <SchoolLogo
+            src={settings?.schoolLogoUrl}
+            className="w-20 h-20 mx-auto object-contain drop-shadow-sm"
+          />
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
             {settings?.schoolName || 'SMKS SANJAYA BAJAWA'}
           </h2>

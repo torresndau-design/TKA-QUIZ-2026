@@ -10,6 +10,7 @@ interface QuestionItemViewerProps {
   value: any;
   onChange: (val: any) => void;
   showDiscussion?: boolean;
+  fontSizeLevel?: number;
 }
 
 export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
@@ -18,9 +19,10 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
   value,
   onChange,
   showDiscussion,
+  fontSizeLevel = 100,
 }) => {
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" style={{ fontSize: `${fontSizeLevel}%` }}>
       {/* Question Header & Meta Info */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
         <div className="flex items-center space-x-2">

@@ -7,6 +7,8 @@ import { getAppSettings, saveAppSettings } from '../../services/db';
 import { exportDatabaseBackup, restoreDatabaseBackup } from '../../utils/backup';
 import { Download, Upload, Save, School } from 'lucide-react';
 
+import { SchoolLogo } from '../../components/common/SchoolLogo';
+
 export const SettingsBackup: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>({
     schoolName: '',
@@ -85,13 +87,19 @@ export const SettingsBackup: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   URL Logo Sekolah (Opsional)
                 </label>
-                <input
-                  type="text"
-                  value={settings.schoolLogoUrl || ''}
-                  onChange={(e) => setSettings({ ...settings, schoolLogoUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-700 border rounded-xl"
-                />
+                <div className="flex items-center gap-3">
+                  <SchoolLogo
+                    src={settings.schoolLogoUrl}
+                    className="w-12 h-12 p-1 border rounded-xl bg-white shadow-sm shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={settings.schoolLogoUrl || ''}
+                    onChange={(e) => setSettings({ ...settings, schoolLogoUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-700 border rounded-xl"
+                  />
+                </div>
               </div>
 
               <div>

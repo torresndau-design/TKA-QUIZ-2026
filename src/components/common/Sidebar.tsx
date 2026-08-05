@@ -18,8 +18,14 @@ import {
 import { showToast } from './Toast';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { X } from 'lucide-react';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -54,12 +60,23 @@ export const Sidebar: React.FC = () => {
     navigate('/login');
   };
 
-  return (
-    <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-[calc(100vh-4rem)] p-4 flex flex-col justify-between shrink-0">
+  const navContent = (
+    <div className="h-full flex flex-col justify-between p-4">
       <div className="space-y-6">
         <div>
-          <div className="px-3 mb-2 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
-            {isAdmin ? 'Menu Administrator' : 'Menu Guru Pengampu'}
+          <div className="flex items-center justify-between px-3 mb-2">
+            <span className="text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+              {isAdmin ? 'Menu Administrator' : 'Menu Guru Pengampu'}
+            </span>
+            {onCloseMobile && (
+              <button
+                onClick={onCloseMobile}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 md:hidden"
+                title="Tutup Menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
           <nav className="space-y-1">
             {links.map((link) => {
@@ -68,6 +85,7 @@ export const Sidebar: React.FC = () => {
                 <NavLink
                   key={link.to}
                   to={link.to}
+                  onClick={() => onCloseMobile && onCloseMobile()}
                   className={({ isActive }) =>
                     `flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       isActive
@@ -110,6 +128,25 @@ export const Sidebar: React.FC = () => {
           AKM Quiz App v2.5
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-[calc(100vh-4rem)] flex-col justify-between shrink-0">
+        {navContent}
+      </aside>
+
+      {/* Mobile Drawer */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onCloseMobile} />
+          <aside className="relative w-72 max-w-[80vw] bg-white dark:bg-slate-800 h-full shadow-2xl z-10 flex flex-col">
+            {navContent}
+          </aside>
+        </div>
+      )}
 
       {/* Modal Konfirmasi Logout */}
       <Modal
@@ -136,6 +173,6 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
       </Modal>
-    </aside>
+    </>
   );
 };

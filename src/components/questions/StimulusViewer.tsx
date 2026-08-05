@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Stimulus } from '../../types';
-import { FileText, Image as ImageIcon, Music, Video, Table, File } from 'lucide-react';
+import { FileText, Image as ImageIcon, Music, Video, Table, File, ZoomIn } from 'lucide-react';
+import { ImageZoomModal } from '../common/ImageZoomModal';
 
 export const StimulusViewer: React.FC<{ stimulus?: Stimulus }> = ({ stimulus }) => {
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+
   if (!stimulus || !stimulus.content) return null;
 
   return (
@@ -21,13 +24,33 @@ export const StimulusViewer: React.FC<{ stimulus?: Stimulus }> = ({ stimulus }) 
       )}
 
       {stimulus.type === 'image' && (
-        <div className="flex justify-center my-2">
-          <img
+        <>
+          <div className="flex flex-col items-center my-2">
+            <div className="relative group cursor-pointer" onClick={() => setIsZoomOpen(true)}>
+              <img
+                src={stimulus.content}
+                alt={stimulus.title || 'Stimulus Gambar'}
+                className="max-h-80 rounded-xl object-contain shadow-sm border border-slate-200 dark:border-slate-700 transition-transform group-hover:scale-[1.01]"
+              />
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center text-white font-bold text-xs gap-1.5">
+                <ZoomIn className="w-5 h-5" /> Klik untuk Memperbesar Gambar
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsZoomOpen(true)}
+              className="mt-2 text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 hover:underline"
+            >
+              <ZoomIn className="w-3.5 h-3.5" /> Perbesar / Zoom Gambar
+            </button>
+          </div>
+          <ImageZoomModal
             src={stimulus.content}
             alt={stimulus.title || 'Stimulus Gambar'}
-            className="max-h-80 rounded-xl object-contain shadow-sm border border-slate-200 dark:border-slate-700"
+            isOpen={isZoomOpen}
+            onClose={() => setIsZoomOpen(false)}
           />
-        </div>
+        </>
       )}
 
       {stimulus.type === 'audio' && (

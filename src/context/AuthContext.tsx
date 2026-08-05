@@ -19,8 +19,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('akm_active_user');
-    if (!saved) return DEFAULT_USERS[0]; // First time initial default for smooth demo experience
-    if (saved === 'none' || saved === 'null') return null;
+    if (!saved || saved === 'none' || saved === 'null') {
+      return null;
+    }
     try {
       const parsed = JSON.parse(saved);
       if (parsed && (parsed.uid === 'admin_1' || parsed.email === 'admin@akmquiz.com')) {

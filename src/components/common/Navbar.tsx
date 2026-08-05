@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Sun, Moon, LogOut, User as UserIcon, BookOpen, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Sun, Moon, LogOut, User as UserIcon, BookOpen, ShieldCheck, AlertTriangle, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from './Badge';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { showToast } from './Toast';
 
-export const Navbar: React.FC = () => {
+import { SchoolLogo } from './SchoolLogo';
+
+interface NavbarProps {
+  onToggleMobileMenu?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
@@ -26,13 +32,19 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo Brand */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {user && onToggleMobileMenu && (
+              <button
+                type="button"
+                onClick={onToggleMobileMenu}
+                className="p-2 md:hidden text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                title="Buka Menu"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            )}
             <Link to="/" className="flex items-center space-x-3 group">
-              <img
-                src="/logo.jpg"
-                alt="Logo SMKS SANJAYA BAJAWA"
-                className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
-              />
+              <SchoolLogo className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform" />
               <div>
                 <span className="font-extrabold text-lg text-slate-800 dark:text-white tracking-tight block leading-tight">
                   AKM <span className="text-[#2563EB]">Quiz</span>

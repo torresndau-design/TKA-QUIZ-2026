@@ -30,16 +30,18 @@ import { ExamResult } from './pages/siswa/ExamResult';
 // Protected Dashboard Layout Component
 const DashboardLayout: React.FC = () => {
   const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors">
-      <Navbar />
+      <Navbar onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)} />
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto">
+        <Sidebar isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} />
+        <main className="flex-1 p-3 sm:p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

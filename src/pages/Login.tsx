@@ -5,6 +5,8 @@ import { Button } from '../components/common/Button';
 import { showToast } from '../components/common/Toast';
 import { BookOpen, ShieldCheck, Lock, Mail, UserCheck } from 'lucide-react';
 
+import { SchoolLogo } from '../components/common/SchoolLogo';
+
 export const Login: React.FC = () => {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
@@ -44,13 +46,9 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
       <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 space-y-6">
         <div className="text-center space-y-2">
-          <img
-            src="/logo.jpg"
-            alt="Logo SMKS SANJAYA BAJAWA"
-            className="w-20 h-20 mx-auto object-contain drop-shadow"
-          />
+          <SchoolLogo className="w-16 h-16 mx-auto object-contain drop-shadow" />
           <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            Login Portal <span className="text-[#2563EB]">TKA Quiz</span>
+            Login Portal <span className="text-[#2563EB]">AKM Quiz</span>
           </h2>
           <p className="text-xs font-bold text-[#2563EB] dark:text-blue-400 uppercase tracking-widest">
             SMKS SANJAYA BAJAWA
