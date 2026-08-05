@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { auth } from '../services/db';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase'; // Diperbaiki dari '../firebase' menjadi '../../firebase' jika di dalam pages/
