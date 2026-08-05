@@ -47,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
               <SchoolLogo className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform" />
               <div>
                 <span className="font-extrabold text-lg text-slate-800 dark:text-white tracking-tight block leading-tight">
-                  AKM <span className="text-[#2563EB]">Quiz</span>
+                  TKA <span className="text-[#2563EB]">Quiz</span>
                 </span>
                 <span className="text-[11px] font-bold text-[#2563EB] dark:text-blue-400 uppercase tracking-wider block">
                   SMKS SANJAYA BAJAWA

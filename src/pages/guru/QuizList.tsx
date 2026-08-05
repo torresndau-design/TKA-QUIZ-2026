@@ -290,7 +290,7 @@ export const QuizList: React.FC = () => {
             Daftar Quiz Saya (Folder Per Mapel)
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Kelola quiz AKM yang Anda ampu secara terorganisir di dalam folder mata pelajaran.
+            Kelola quiz TKA yang Anda ampu secara terorganisir di dalam folder mata pelajaran.
           </p>
         </div>
         <Link to="/guru/quizzes/new">
@@ -386,7 +386,7 @@ export const QuizList: React.FC = () => {
                   : 'Tidak ada quiz yang sesuai dengan pencarian.'}
               </p>
               <p className="text-xs text-slate-400 mt-1 mb-4">
-                Klik tombol di bawah untuk membuat quiz AKM pertama Anda.
+                Klik tombol di bawah untuk membuat quiz TKA pertama Anda.
               </p>
               <Link to="/guru/quizzes/new">
                 <Button icon={<Plus className="w-4 h-4" />}>Buat Quiz Sekarang</Button>
@@ -478,7 +478,7 @@ export const QuizList: React.FC = () => {
                   : 'Tidak ada quiz yang sesuai dengan pencarian.'}
               </p>
               <p className="text-xs text-slate-400 mt-1 mb-4">
-                Klik tombol di bawah untuk membuat quiz AKM pertama Anda.
+                Klik tombol di bawah untuk membuat quiz TKA pertama Anda.
               </p>
               <Link to="/guru/quizzes/new">
                 <Button icon={<Plus className="w-4 h-4" />}>Buat Quiz Sekarang</Button>

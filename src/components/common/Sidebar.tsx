@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
     { to: '/admin/teachers', label: 'Manajemen Guru', icon: Users },
     { to: '/admin/subjects', label: 'Manajemen Mapel', icon: BookOpenCheck },
     { to: '/admin/quizzes', label: 'Manajemen Quiz', icon: FileQuestion },
-    { to: '/admin/question-bank', label: 'Bank Soal AKM', icon: HelpCircle },
+    { to: '/admin/question-bank', label: 'Bank Soal TKA', icon: HelpCircle },
     { to: '/admin/student-scores', label: 'Monitoring Nilai', icon: GraduationCap },
     { to: '/admin/settings', label: 'Backup & Pengaturan', icon: Database },
   ];
@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   const guruLinks = [
     { to: '/guru/dashboard', label: 'Dashboard Guru', icon: LayoutDashboard },
     { to: '/guru/quizzes', label: 'Daftar Quiz Saya', icon: FileQuestion },
-    { to: '/guru/question-bank', label: 'Bank Soal AKM', icon: HelpCircle },
+    { to: '/guru/question-bank', label: 'Bank Soal TKA', icon: HelpCircle },
     { to: '/guru/student-scores', label: 'Monitoring Nilai', icon: GraduationCap },
   ];
 

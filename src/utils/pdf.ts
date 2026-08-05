@@ -11,7 +11,7 @@ export function exportResultsToPDF(quiz: Quiz, participants: Participant[], scho
 
   doc.setFontSize(12);
   doc.setTextColor(30, 41, 59);
-  doc.text(`LAPORAN HASIL QUIZ AKM: ${quiz.title.toUpperCase()}`, 14, 28);
+  doc.text(`LAPORAN HASIL QUIZ TKA: ${quiz.title.toUpperCase()}`, 14, 28);
 
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);
@@ -63,5 +63,5 @@ export function exportResultsToPDF(quiz: Quiz, participants: Participant[], scho
     doc.text(`Total Peserta: ${total} Siswa  |  Rata-Rata Nilai: ${avg}`, 14, y);
   }
 
-  doc.save(`Laporan_AKM_${quiz.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  doc.save(`Laporan_TKA_${quiz.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
 }

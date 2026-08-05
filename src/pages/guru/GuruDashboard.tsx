@@ -32,7 +32,7 @@ export const GuruDashboard: React.FC = () => {
           Selamat Datang, {user?.name}! 👋
         </h1>
         <p className="text-xs text-blue-100 max-w-xl leading-relaxed">
-          Kelola asesmen kompetensi minimum (AKM), susun bank soal interaktif 16 tipe, dan pantau hasil analisis pengerjaan siswa secara mudah.
+          Kelola Tes Kemampuan Akademik (TKA), susun bank soal interaktif 16 tipe, dan pantau hasil analisis pengerjaan siswa secara mudah.
         </p>
         <div className="mt-4 flex gap-3">
           <Link to="/guru/quizzes/new">
@@ -42,7 +42,7 @@ export const GuruDashboard: React.FC = () => {
           </Link>
           <Link to="/guru/question-bank">
             <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 border-white/30 text-white">
-              Bank Soal AKM
+              Bank Soal TKA
             </Button>
           </Link>
         </div>

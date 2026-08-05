@@ -104,7 +104,7 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
       <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 border-b pb-3">
-        {question ? 'Edit Soal AKM' : 'Tambah Soal Baru'}
+        {question ? 'Edit Soal TKA' : 'Tambah Soal Baru'}
       </h3>
 
       {/* Meta Grid */}
@@ -136,7 +136,7 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kategori AKM</label>
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kategori TKA</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as AkmCategory)}

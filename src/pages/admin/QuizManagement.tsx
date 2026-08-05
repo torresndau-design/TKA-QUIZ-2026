@@ -44,7 +44,7 @@ export const QuizManagement: React.FC = () => {
 
   const handleDelete = async (id: string, title: string) => {
     const confirmed = await showConfirmDialog(
-      'Hapus Quiz AKM?',
+      'Hapus Quiz TKA?',
       `Apakah Anda yakin ingin menghapus quiz "${title}"?`
     );
     if (confirmed) {

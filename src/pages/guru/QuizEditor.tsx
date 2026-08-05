@@ -216,10 +216,10 @@ export const QuizEditor: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-              {id ? 'Edit Quiz & Kelola Soal' : 'Buat Quiz AKM Baru'}
+              {id ? 'Edit Quiz & Kelola Soal' : 'Buat Quiz TKA Baru'}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Atur parameter quiz dan susun soal-soal kompetensi minimum.
+              Atur parameter quiz dan susun soal-soal kompetensi akademik.
             </p>
           </div>
         </div>
@@ -368,8 +368,8 @@ export const QuizEditor: React.FC = () => {
         {/* Right Column: Question Item Management */}
         <div className="lg:col-span-2 space-y-4">
           <Card
-            title={`Daftar Soal AKM (${questions.length} Soal)`}
-            subtitle="Tambahkan, edit, atau import bank soal AKM"
+            title={`Daftar Soal TKA (${questions.length} Soal)`}
+            subtitle="Tambahkan, edit, atau import bank soal TKA"
             action={
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -471,7 +471,7 @@ export const QuizEditor: React.FC = () => {
       <Modal
         isOpen={isQuestionModalOpen}
         onClose={() => setIsQuestionModalOpen(false)}
-        title={editingQuestion ? 'Edit Soal AKM' : 'Tambah Soal Baru'}
+        title={editingQuestion ? 'Edit Soal TKA' : 'Tambah Soal Baru'}
         maxWidth="2xl"
       >
         <QuestionItemEditor

@@ -170,7 +170,7 @@ export const QuizReport: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-              Laporan & Analisis Nilai AKM
+              Laporan & Analisis Nilai TKA
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {quiz.title} • {quiz.subjectName} ({quiz.targetClass})

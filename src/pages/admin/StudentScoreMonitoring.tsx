@@ -575,7 +575,7 @@ export const StudentScoreMonitoring: React.FC = () => {
                         {quiz?.subjectName || 'Mata Pelajaran'}
                       </div>
                       <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 truncate" title={quiz?.title}>
-                        {quiz?.title || 'Quiz AKM'}
+                        {quiz?.title || 'Quiz TKA'}
                       </div>
                     </td>
                     <td className="py-3.5 px-3">

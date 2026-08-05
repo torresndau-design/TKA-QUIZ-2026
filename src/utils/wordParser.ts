@@ -647,7 +647,7 @@ export function downloadWordTemplate() {
 <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head>
 <meta charset="utf-8">
-<title>TEMPLATE SOAL AKM & CBT WORD MACRO</title>
+<title>TEMPLATE SOAL TKA & CBT WORD MACRO</title>
 <style>
   body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; color: #000; }
   .title-header { font-size: 16pt; font-weight: bold; margin-bottom: 12px; color: #1e3a8a; text-transform: uppercase; }
@@ -661,10 +661,10 @@ export function downloadWordTemplate() {
 </head>
 <body>
 
-<div class="title-header">TEMPLATE SOAL AKM & CBT WORD MACRO STANDARD</div>
+<div class="title-header">TEMPLATE SOAL TKA & CBT WORD MACRO STANDARD</div>
 
 <div class="info-box">
-  <b style="font-size: 11pt; color: #1e3a8a;">PETUNJUK FORMAT TEMPLATE SOAL AKM WORD:</b><br/><br/>
+  <b style="font-size: 11pt; color: #1e3a8a;">PETUNJUK FORMAT TEMPLATE SOAL TKA WORD:</b><br/><br/>
   1. <b>Format Tabel</b>: Setiap soal ditulis dalam bentuk <b>Tabel 2 Kolom Continuous</b>.<br/>
   2. <b>Kolom Kiri</b>: Berisi Nomor Soal (<code>1.</code>, <code>2.</code>, dst), Huruf Pilihan (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>E</code>), atau Tag Metadata (<code>TIPE</code>, <code>KATEGORI</code>, <code>BOBOT</code>, <code>STIMULUS</code>, <code>KUNCI</code>, <code>PEMBAHASAN</code>).<br/>
   3. <b>Kolom Kanan</b>: Berisi Teks Pertanyaan, Teks Pilihan/Pernyataan, Nilai Kunci Jawaban, dan Pembahasan.<br/>

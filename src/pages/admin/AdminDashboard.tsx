@@ -39,7 +39,7 @@ export const AdminDashboard: React.FC = () => {
   const lowestScore = 45;
 
   const chartData = {
-    labels: ['Simulasi Literasi', 'AKM Numerasi', 'Sains Dasar', 'Sosial Budaya', 'Tryout 1'],
+    labels: ['Simulasi Literasi', 'TKA Numerasi', 'Sains Dasar', 'Sosial Budaya', 'Tryout 1'],
     datasets: [
       {
         label: 'Jumlah Peserta Pengerjaan',
@@ -87,7 +87,7 @@ export const AdminDashboard: React.FC = () => {
           Dashboard Administrator
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Ikhtisar sistem asesmen AKM, data statistik guru, mapel, dan hasil ujian.
+          Ikhtisar sistem asesmen TKA, data statistik guru, mapel, dan hasil ujian.
         </p>
       </div>
 
@@ -119,7 +119,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-800 dark:text-slate-100">{quizzes.length}</div>
-            <div className="text-xs text-slate-500 font-medium">Total Quiz AKM</div>
+            <div className="text-xs text-slate-500 font-medium">Total Quiz TKA</div>
           </div>
         </Card>
 
@@ -162,7 +162,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Analytics Chart */}
-      <Card title="Grafik Pengerjaan & Performa Quiz AKM" subtitle="Statistik perbandingan jumlah peserta dan rata-rata nilai">
+      <Card title="Grafik Pengerjaan & Performa Quiz TKA" subtitle="Statistik perbandingan jumlah peserta dan rata-rata nilai">
         <div className="h-72 w-full pt-2">
           <Bar data={chartData} options={chartOptions} />
         </div>

@@ -91,7 +91,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export const DEFAULT_QUIZZES: Quiz[] = [
   {
     id: 'quiz_1',
-    title: 'Simulasi AKM Literasi Membaca 2026',
+    title: 'Simulasi TKA Literasi Membaca 2026',
     description: 'Uji kompetensi literasi membaca teks informasi dan fiksi tingkat SMA/SMK.',
     subjectId: 'subj_1',
     subjectName: 'Bahasa Indonesia (Literasi)',
@@ -105,13 +105,13 @@ export const DEFAULT_QUIZZES: Quiz[] = [
     showGrade: true,
     showDiscussion: true,
     status: 'PUBLISHED',
-    token: 'AKM2026',
+    token: 'TKA2026',
     questionCount: 5,
     createdAt: new Date().toISOString(),
   },
   {
     id: 'quiz_2',
-    title: 'Asesmen AKM Numerasi Data & Ketidakpastian',
+    title: 'Asesmen TKA Numerasi Data & Ketidakpastian',
     description: 'Soal penalaran grafik, tabel statistik, dan peluang kejadian sederhana.',
     subjectId: 'subj_2',
     subjectName: 'Matematika (Numerasi)',

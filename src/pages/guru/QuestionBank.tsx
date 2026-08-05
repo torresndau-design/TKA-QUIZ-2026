@@ -318,10 +318,10 @@ export const QuestionBank: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
             <Folder className="w-7 h-7 text-[#2563EB]" />
-            Bank Soal AKM (Folder Per Mapel)
+            Bank Soal TKA (Folder Per Mapel)
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Bank soal Asesmen Kompetensi Minimum tersimpan secara rapi dalam folder per mata pelajaran.
+            Bank soal Tes Kemampuan Akademik tersimpan secara rapi dalam folder per mata pelajaran.
           </p>
         </div>
 
@@ -411,14 +411,14 @@ export const QuestionBank: React.FC = () => {
             {/* Filter Category */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Kategori AKM
+                Kategori TKA
               </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
               >
-                <option value="ALL">Semua Kategori AKM</option>
+                <option value="ALL">Semua Kategori TKA</option>
                 <option value="Literasi">Literasi Membaca</option>
                 <option value="Numerasi">Numerasi</option>
                 <option value="Sains">Literasi Sains</option>

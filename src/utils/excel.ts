@@ -5,7 +5,7 @@ export function exportQuestionsToExcel(questions: Question[], quizTitle: string)
   const data = questions.map((q, i) => ({
     No: i + 1,
     'Tipe Soal': q.type,
-    'Kategori AKM': q.category,
+    'Kategori TKA': q.category,
     Bab: q.chapter || '',
     'Sub Bab': q.subChapter || '',
     'Tingkat Kesulitan': q.difficulty,
@@ -21,7 +21,7 @@ export function exportQuestionsToExcel(questions: Question[], quizTitle: string)
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Bank Soal');
 
-  XLSX.writeFile(workbook, `Soal_AKM_${quizTitle.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+  XLSX.writeFile(workbook, `Soal_TKA_${quizTitle.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
 }
 
 export function exportResultsToExcel(participants: Participant[], quizTitle: string) {
@@ -63,7 +63,7 @@ export function parseQuestionsFromExcel(file: File): Promise<Partial<Question>[]
 
           return {
             type: qType,
-            category: row['Kategori AKM'] || 'Literasi',
+            category: row['Kategori TKA'] || row['Kategori AKM'] || 'Literasi',
             chapter: row['Bab'] || 'Umum',
             subChapter: row['Sub Bab'] || 'Umum',
             difficulty: diff,

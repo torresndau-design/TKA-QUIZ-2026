@@ -1,4 +1,4 @@
-// Types for TKA Quiz Application
+// Types for AKM Quiz Application
 
 export type UserRole = 'ADMIN' | 'GURU';
 

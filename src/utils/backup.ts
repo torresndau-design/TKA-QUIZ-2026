@@ -34,7 +34,7 @@ export async function exportDatabaseBackup(): Promise<void> {
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `AKM_Quiz_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `TKA_Quiz_Backup_${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
