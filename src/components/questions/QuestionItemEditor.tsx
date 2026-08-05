@@ -1,4 +1,4 @@
-import { ... } from '../../services/db';
+import { db } from '../../services/db';
 import { Question, QuestionType, AkmCategory, CognitiveLevel, DifficultyLevel } from '../../types';
 import { Button } from '../common/Button';
 import { Plus, Trash2, Check } from 'lucide-react';
