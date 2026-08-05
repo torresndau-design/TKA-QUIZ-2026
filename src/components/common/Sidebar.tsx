@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
         </button>
 
         <div className="text-[10px] text-center text-slate-400 dark:text-slate-500 font-semibold">
-          AKM Quiz App v2.5
+          TKA Quiz App v2.5
         </div>
       </div>
     </div>

@@ -76,7 +76,7 @@ export const SubjectManagement: React.FC = () => {
             Manajemen Mata Pelajaran
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Daftar mata pelajaran yang diujikan dalam sistem AKM Quiz.
+            Daftar mata pelajaran yang diujikan dalam sistem TKA Quiz.
           </p>
         </div>
         <Button onClick={handleOpenAdd} icon={<Plus className="w-4 h-4" />}>
