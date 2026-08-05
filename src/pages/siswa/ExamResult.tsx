@@ -11,7 +11,7 @@ import {
   getQuestionsByQuiz,
   getAnswersByParticipant,
 } from '../../services/db';
-import { CheckCircle2, Award, FileText, Home, ArrowLeft, LogOut } from 'lucide-react';
+import { CheckCircle2, Award, FileText, Home, ArrowLeft } from 'lucide-react';
 
 export const ExamResult: React.FC = () => {
   const { participantId } = useParams<{ participantId: string }>();
@@ -114,11 +114,6 @@ export const ExamResult: React.FC = () => {
             <Link to={`/exam/${quiz.id}`}>
               <Button variant="outline" icon={<Home className="w-4 h-4" />}>
                 Selesai & Keluar Ke Halaman Utama
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="secondary" icon={<LogOut className="w-4 h-4" />}>
-                Login Guru / Admin
               </Button>
             </Link>
           </div>
