@@ -1,9 +1,7 @@
-import { db } from '../../services/db';
+import React, { useState } from 'react';
 import { Question, QuestionType, AkmCategory, CognitiveLevel, DifficultyLevel } from '../../types';
 import { Button } from '../common/Button';
 import { Plus, Trash2, Check } from 'lucide-react';
-import { collection, addDoc, doc, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase'; // Sesuaikan path ini jika file firebase.ts Anda berada di folder lain
 
 interface QuestionItemEditorProps {
   question?: Question;
@@ -68,7 +66,7 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
     question?.sequenceItems || ['Langkah 1', 'Langkah 2', 'Langkah 3']
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const updatedQuestion: Question = {
       id: question?.id || `q_${Date.now()}`,
@@ -99,18 +97,6 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
       sequenceItems: type === 'mengurutkan' ? sequenceItems : undefined,
       createdAt: question?.createdAt || new Date().toISOString(),
     };
-
-    try {
-      // Simpan langsung ke Cloud Firestore
-      if (question?.id) {
-        await setDoc(doc(db, 'questions', question.id), updatedQuestion);
-      } else {
-        await addDoc(collection(db, 'questions'), updatedQuestion);
-      }
-      console.log('Soal berhasil disimpan ke Firestore!');
-    } catch (error) {
-      console.error('Gagal menyimpan soal ke Firestore:', error);
-    }
 
     onSave(updatedQuestion);
   };
