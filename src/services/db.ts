@@ -22,8 +22,6 @@ import {
   AppSettings,
 } from '../types';
 
-import schoolLogo from '../assets/logo.jpg';
-
 // Helper for localStorage fallback / memory caching for offline robustness
 const LOCAL_STORAGE_PREFIX = 'akm_db_';
 
@@ -85,7 +83,7 @@ export const DEFAULT_SUBJECTS: Subject[] = [
 
 export const DEFAULT_SETTINGS: AppSettings = {
   schoolName: 'SMKS SANJAYA BAJAWA',
-  schoolLogoUrl: schoolLogo,
+  schoolLogoUrl: '',
   academicYear: '2025/2026',
   examInstructions: '1. Kerjakan soal dengan teliti.\n2. Anda dapat menggunakan tombol Ragu-ragu jika belum yakin.\n3. Dilarang berpindah halaman/tab selama ujian berlangsung.\n4. Pastikan jawaban terisi sebelum waktu habis.',
 };
@@ -895,8 +893,8 @@ export async function getAppSettings(): Promise<AppSettings> {
   if (!settings.schoolName || settings.schoolName === 'SMA Negeri 1 Indonesia') {
     settings.schoolName = 'SMKS SANJAYA BAJAWA';
   }
-  if (!settings.schoolLogoUrl || settings.schoolLogoUrl.includes('unsplash') || settings.schoolLogoUrl === '/logo.jpg') {
-    settings.schoolLogoUrl = schoolLogo;
+  if (!settings.schoolLogoUrl || settings.schoolLogoUrl.includes('unsplash') || settings.schoolLogoUrl === '/logo.jpg' || settings.schoolLogoUrl.includes('logo_sanjaya')) {
+    settings.schoolLogoUrl = '';
   }
 
   return settings;

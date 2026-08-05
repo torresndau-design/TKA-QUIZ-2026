@@ -34,7 +34,7 @@ export const Login: React.FC = () => {
 
   const fillDemoAdmin = () => {
     setEmail('admintka@guru.com');
-    setPassword('tka123*#');
+    setPassword('tka123*');
   };
 
   const fillDemoGuru = () => {
