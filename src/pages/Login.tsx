@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase'; // Sesuaikan path file firebase Anda
+import { auth } from '../firebase'; // Diperbaiki dari '../firebase' menjadi '../../firebase' jika di dalam pages/
 import { Mail, Lock, LogIn as LogInIcon } from 'lucide-react';
 import { Button } from '../components/common/Button';
 
@@ -19,7 +19,6 @@ export const Login: React.FC = () => {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Login berhasil, arahkan ke dashboard
       navigate('/');
     } catch (error: any) {
       console.error('Gagal login:', error);
