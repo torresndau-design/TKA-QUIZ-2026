@@ -51,7 +51,7 @@ export const Login: React.FC = () => {
         <div className="text-center space-y-2">
           <SchoolLogo className="w-16 h-16 mx-auto object-contain drop-shadow" />
           <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            Login Portal <span className="text-[#2563EB]">AKM Quiz</span>
+            Login Portal <span className="text-[#2563EB]">TKA Quiz</span>
           </h2>
           <p className="text-xs font-bold text-[#2563EB] dark:text-blue-400 uppercase tracking-widest">
             SMKS SANJAYA BAJAWA
