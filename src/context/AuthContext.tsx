@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { User, UserRole } from '../types';
 import { getUsers, DEFAULT_USERS, saveUser } from '../services/db';
@@ -76,14 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: 'Email atau password salah.' };
         }
 
-        // Try Firebase Auth login if possible, else approve local demo match
-        try {
-          await signInWithEmailAndPassword(auth, cleanEmail, pass);
-        } catch {
-          // Demo fallback pass check
-          console.info('Using local auth validation for demo');
-        }
-
+        // Set user from verified database record
         setUser(matched);
         localStorage.setItem('akm_active_user', JSON.stringify(matched));
         setLoading(false);

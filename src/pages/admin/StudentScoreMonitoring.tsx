@@ -262,7 +262,7 @@ export const StudentScoreMonitoring: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 no-print">
           <Button
             variant="outline"
             size="sm"
@@ -283,7 +283,7 @@ export const StudentScoreMonitoring: React.FC = () => {
       </div>
 
       {/* Overview Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
         <Card className="flex items-center space-x-4">
           <div className="p-3 bg-blue-100 dark:bg-blue-950 text-[#2563EB] rounded-2xl">
             <Users className="w-6 h-6" />
@@ -328,7 +328,7 @@ export const StudentScoreMonitoring: React.FC = () => {
       </div>
 
       {/* Filters & Control Panel */}
-      <Card>
+      <Card className="no-print">
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Filter Guru Pengampu */}
@@ -463,13 +463,40 @@ export const StudentScoreMonitoring: React.FC = () => {
         </div>
       </Card>
 
+      {/* PRINT-ONLY OFFICIAL HEADER */}
+      <div className="hidden print:block mb-6 p-4 border-b-2 border-slate-900 bg-white text-slate-900">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-300 mb-3">
+          <div>
+            <h1 className="text-xl font-black tracking-wider uppercase text-slate-900">
+              {schoolName || 'SMKS SANJAYA BAJAWA'}
+            </h1>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+              LAPORAN REKAPITULASI MONITORING NILAI UJIAN SISWA
+            </h2>
+          </div>
+          <div className="text-right text-xs text-slate-700 font-semibold">
+            <p>Tanggal Cetak: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p>Total Peserta: {totalCount} Siswa</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-800 font-medium">
+          <p><strong>Guru Pengampu:</strong> {activeTeacher ? `${activeTeacher.name} ${activeTeacher.nip ? `(NIP: ${activeTeacher.nip})` : ''}` : 'Semua Guru'}</p>
+          <p><strong>Mata Pelajaran:</strong> {activeSubject ? `[${activeSubject.code}] ${activeSubject.name}` : 'Semua Mata Pelajaran'}</p>
+          <p><strong>Quiz / Ujian:</strong> {selectedQuizId !== 'ALL' ? (quizMap.get(selectedQuizId)?.title || 'Selected Quiz') : 'Semua Ujian'}</p>
+          <p><strong>Filter Kelas:</strong> {selectedClass !== 'ALL' ? `Kelas ${selectedClass}` : 'Semua Kelas'}</p>
+          <p><strong>Rata-Rata Nilai:</strong> <span className="font-bold text-blue-800">{avgScore}</span></p>
+          <p><strong>Tingkat Kelulusan KKM:</strong> <span className="font-bold text-emerald-800">{passedCount} Siswa ({passPercentage}%)</span></p>
+        </div>
+      </div>
+
       {/* Main Score List Table */}
       <Card
         title={`Daftar Nilai Siswa (${filteredParticipants.length} Data)`}
         subtitle={`Monitoring pengerjaan siswa terurut secara realtime.`}
         action={
           selectedIds.length > 0 ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 no-print">
               <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                 {selectedIds.length} dipilih
               </span>
@@ -489,7 +516,7 @@ export const StudentScoreMonitoring: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 font-bold uppercase">
-                <th className="py-3.5 px-3 w-10 text-center">
+                <th className="py-3.5 px-3 w-10 text-center no-print">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -505,7 +532,7 @@ export const StudentScoreMonitoring: React.FC = () => {
                 <th className="py-3.5 px-3 text-center">Nilai Akhir</th>
                 <th className="py-3.5 px-3 text-center">Status KKM</th>
                 <th className="py-3.5 px-3 text-center">Detail Pengerjaan</th>
-                <th className="py-3.5 px-3 text-right">Aksi</th>
+                <th className="py-3.5 px-3 text-right no-print">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 font-medium">
@@ -525,7 +552,7 @@ export const StudentScoreMonitoring: React.FC = () => {
                         : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'
                     }`}
                   >
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-3.5 px-3 text-center no-print">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -580,7 +607,7 @@ export const StudentScoreMonitoring: React.FC = () => {
                         <div className="text-[10px] text-slate-400">Ujian Tertib</div>
                       )}
                     </td>
-                    <td className="py-3.5 px-3 text-right">
+                    <td className="py-3.5 px-3 text-right no-print">
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           size="sm"
@@ -618,6 +645,29 @@ export const StudentScoreMonitoring: React.FC = () => {
           </table>
         </div>
       </Card>
+
+      {/* PRINT-ONLY SIGNATURE FOOTER */}
+      <div className="hidden print:block mt-12 pt-6 text-xs text-slate-900 font-medium">
+        <div className="grid grid-cols-2 gap-12 text-center">
+          <div>
+            <p className="mb-14">Mengetahui,<br /><strong>Kepala Sekolah SMKS SANJAYA BAJAWA</strong></p>
+            <p className="font-bold underline uppercase">(........................................................)</p>
+            <p className="text-[10px] text-slate-600 mt-1">NIP: .................................................</p>
+          </div>
+          <div>
+            <p className="mb-14">
+              Bajawa, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br />
+              <strong>Guru Pengampu / Wali Kelas</strong>
+            </p>
+            <p className="font-bold underline uppercase">
+              ({activeTeacher ? activeTeacher.name : '........................................................'})
+            </p>
+            <p className="text-[10px] text-slate-600 mt-1">
+              NIP: {activeTeacher?.nip || '.................................................'}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Participant Detail Modal */}
       {selectedParticipant && (

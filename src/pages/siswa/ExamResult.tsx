@@ -11,7 +11,7 @@ import {
   getQuestionsByQuiz,
   getAnswersByParticipant,
 } from '../../services/db';
-import { CheckCircle2, Award, FileText, Home, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Award, FileText, Home, ArrowLeft, Printer } from 'lucide-react';
 
 export const ExamResult: React.FC = () => {
   const { participantId } = useParams<{ participantId: string }>();
@@ -109,34 +109,84 @@ export const ExamResult: React.FC = () => {
             </div>
           )}
 
-          {/* Exit / Return Navigation */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-3 border-t">
+          {/* Exit / Return Navigation & Print Option */}
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-3 border-t no-print">
             <Link to={`/exam/${quiz.id}`}>
               <Button variant="outline" icon={<Home className="w-4 h-4" />}>
                 Selesai & Keluar Ke Halaman Utama
               </Button>
             </Link>
+
+            {quiz.showGrade && (
+              <Button
+                variant="primary"
+                icon={<Printer className="w-4 h-4" />}
+                onClick={() => window.print()}
+              >
+                Cetak / Simpan PDF
+              </Button>
+            )}
           </div>
         </Card>
+
+        {/* Header specifically formatted for Print PDF */}
+        <div className="hidden print:block p-6 bg-white border border-slate-300 rounded-xl mb-6 space-y-3">
+          <div className="text-center border-b pb-3">
+            <h1 className="text-xl font-black uppercase text-slate-900 tracking-wide">
+              HASIL DAN PEMBAHASAN SOAL UJIAN
+            </h1>
+            <p className="text-xs text-slate-600 font-semibold mt-1">{quiz.title} - {quiz.subject}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <p><span className="font-bold text-slate-600">Nama Siswa:</span> {participant.fullName}</p>
+              <p><span className="font-bold text-slate-600">Kelas:</span> {participant.studentClass}</p>
+              <p><span className="font-bold text-slate-600">Mata Pelajaran:</span> {quiz.subject}</p>
+            </div>
+            <div>
+              <p><span className="font-bold text-slate-600">Nilai Akhir:</span> <strong className="text-blue-700 text-sm">{participant.score} / 100</strong> ({isPassed ? 'LULUS KKM' : 'REMIDI'})</p>
+              <p><span className="font-bold text-slate-600">Jumlah Benar / Salah:</span> {participant.correctCount} Benar / {participant.wrongCount} Salah</p>
+              <p><span className="font-bold text-slate-600">Tanggal Cetak:</span> {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            </div>
+          </div>
+        </div>
 
         {/* Detailed Discussion Review if permitted */}
         {quiz.showGrade && quiz.showDiscussion && (
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#2563EB]" /> Pembahasan Soal
-            </h3>
+            <div className="flex items-center justify-between no-print">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#2563EB]" /> Pembahasan Soal
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Printer className="w-4 h-4" />}
+                onClick={() => window.print()}
+                className="no-print border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-slate-700 dark:text-blue-300"
+              >
+                Cetak Pembahasan PDF
+              </Button>
+            </div>
+
+            <div className="hidden print:block text-base font-bold text-slate-900 border-b pb-2 mb-4">
+              Daftar Soal dan Pembahasan
+            </div>
+
             {questions.map((q, i) => {
               const ansObj = answers.find((a) => a.questionId === q.id);
               return (
-                <Card key={q.id}>
-                  <QuestionItemViewer
-                    question={q}
-                    number={i + 1}
-                    value={ansObj?.userAnswer}
-                    onChange={() => {}}
-                    showDiscussion={true}
-                  />
-                </Card>
+                <div key={q.id} className="break-inside-avoid">
+                  <Card>
+                    <QuestionItemViewer
+                      question={q}
+                      number={i + 1}
+                      value={ansObj?.userAnswer}
+                      onChange={() => {}}
+                      showDiscussion={true}
+                    />
+                  </Card>
+                </div>
               );
             })}
           </div>

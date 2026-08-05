@@ -3,15 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { showToast } from '../../components/common/Toast';
+import { useTheme } from '../../context/ThemeContext';
 import { Quiz, AppSettings, Participant } from '../../types';
 import { getQuizById, getQuizzes, getAppSettings, saveParticipant } from '../../services/db';
-import { BookOpen, Clock, FileText, UserCheck, ShieldAlert, ArrowRight, LogIn } from 'lucide-react';
+import { BookOpen, Clock, FileText, UserCheck, ShieldAlert, ArrowRight, LogIn, Sun, Moon } from 'lucide-react';
 
 import { SchoolLogo } from '../../components/common/SchoolLogo';
 
 export const StudentEntrance: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
+  const { isDarkMode, toggleDarkMode } = useTheme();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [availableQuizzes, setAvailableQuizzes] = useState<Quiz[]>([]);
@@ -113,7 +115,18 @@ export const StudentEntrance: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          title="Toggle Dark Mode"
+        >
+          {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+        </button>
+      </div>
+
       <div className="w-full max-w-xl space-y-6">
         {/* School Kop */}
         <div className="text-center space-y-2">

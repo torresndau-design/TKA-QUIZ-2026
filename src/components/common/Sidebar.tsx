@@ -134,13 +134,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-[calc(100vh-4rem)] flex-col justify-between shrink-0">
+      <aside className="hidden md:flex w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-[calc(100vh-4rem)] flex-col justify-between shrink-0 no-print">
         {navContent}
       </aside>
 
       {/* Mobile Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+        <div className="fixed inset-0 z-50 md:hidden flex no-print">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onCloseMobile} />
           <aside className="relative w-72 max-w-[80vw] bg-white dark:bg-slate-800 h-full shadow-2xl z-10 flex flex-col">
             {navContent}

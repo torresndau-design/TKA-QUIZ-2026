@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 import { showToast } from '../components/common/Toast';
-import { BookOpen, ShieldCheck, Lock, Mail, UserCheck } from 'lucide-react';
+import { Lock, Mail, Sun, Moon } from 'lucide-react';
 
 import { SchoolLogo } from '../components/common/SchoolLogo';
 
 export const Login: React.FC = () => {
   const { login, loading } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -32,18 +34,19 @@ export const Login: React.FC = () => {
     }
   };
 
-  const fillDemoAdmin = () => {
-    setEmail('admintka@guru.com');
-    setPassword('tka123*');
-  };
-
-  const fillDemoGuru = () => {
-    setEmail('guru@akmquiz.com');
-    setPassword('guru123');
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 relative">
+      <div className="absolute top-4 right-4">
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          title="Toggle Dark Mode"
+        >
+          {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+        </button>
+      </div>
+
       <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 space-y-6">
         <div className="text-center space-y-2">
           <SchoolLogo className="w-16 h-16 mx-auto object-contain drop-shadow" />
@@ -103,29 +106,6 @@ export const Login: React.FC = () => {
             Masuk Sekarang
           </Button>
         </form>
-
-        {/* Demo Fast Fill Buttons */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
-          <p className="text-[11px] font-bold text-slate-400 text-center uppercase tracking-wider">
-            Akun Demo
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={fillDemoAdmin}
-              className="px-3 py-2 text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" /> Demo Admin
-            </button>
-            <button
-              type="button"
-              onClick={fillDemoGuru}
-              className="px-3 py-2 text-xs font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 rounded-xl border border-sky-200 dark:border-sky-800 hover:bg-sky-100 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <UserCheck className="w-3.5 h-3.5" /> Demo Guru
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -1,1 +1,65 @@
 @import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Base theme transitions and color scheme */
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+@media print {
+  /* Hide non-printable elements */
+  .no-print,
+  nav,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  body, #root {
+    background: white !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-family: sans-serif !important;
+  }
+
+  /* Prevent awkward page splits inside question cards */
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .min-h-screen {
+    min-height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  /* Simplify shadows and borders for printing */
+  .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm, .shadow {
+    box-shadow: none !important;
+  }
+
+  /* Ensure background colors for badges and alerts print clearly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
