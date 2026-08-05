@@ -322,6 +322,13 @@ export async function seedInitialData() {
         await setDoc(qstRef, qst);
       }
     }
+    for (const p of DEFAULT_PARTICIPANTS) {
+      const pRef = doc(db, 'participants', p.id);
+      const pSnap = await getDoc(pRef);
+      if (!pSnap.exists()) {
+        await setDoc(pRef, p);
+      }
+    }
     const setRef = doc(db, 'settings', 'global');
     const setSnap = await getDoc(setRef);
     if (!setSnap.exists()) {
