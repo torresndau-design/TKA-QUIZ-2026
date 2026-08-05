@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users",
+      "description": "Admin and Teacher account records",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "GURU"] },
+        "nip": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "name", "role", "isActive"]
+    },
+    "subjects": {
+      "title": "Subjects",
+      "description": "Mata Pelajaran records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "quizzes": {
+      "title": "Quizzes",
+      "description": "Quiz assessment configurations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "targetClass": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "duration": { "type": "number" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "minPassingGrade": { "type": "number" },
+        "randomizeQuestions": { "type": "boolean" },
+        "randomizeAnswers": { "type": "boolean" },
+        "showGrade": { "type": "boolean" },
+        "showDiscussion": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["PUBLISHED", "DRAFT", "ARCHIVED"] },
+        "token": { "type": "string" },
+        "questionCount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "teacherId", "duration"]
+    },
+    "questions": {
+      "title": "Questions",
+      "description": "AKM Question Item details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "quizId": { "type": "string" },
+        "type": { "type": "string" },
+        "category": { "type": "string" },
+        "chapter": { "type": "string" },
+        "subChapter": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "cognitiveLevel": { "type": "string" },
+        "akmType": { "type": "string" },
+        "questionText": { "type": "string" },
+        "stimulus": { "type": "object" },
+        "options": { "type": "array" },
+        "matchingPairs": { "type": "array" },
+        "trueFalseItems": { "type": "array" },
+        "correctAnswer": { "type": "object" },
+        "discussion": { "type": "string" },
+        "weight": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["type", "questionText"]
+    },
+    "participants": {
+      "title": "Participants",
+      "description": "Student exam participant session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "quizId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "nis": { "type": "string" },
+        "studentClass": { "type": "string" },
+        "startedAt": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "isFinished": { "type": "boolean" },
+        "score": { "type": "number" },
+        "correctCount": { "type": "number" },
+        "wrongCount": { "type": "number" },
+        "essayGraded": { "type": "boolean" },
+        "antiCheatViolations": { "type": "number" }
+      },
+      "required": ["quizId", "fullName", "nis", "studentClass"]
+    },
+    "answers": {
+      "title": "Answers",
+      "description": "Student responses per participant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participantId": { "type": "string" },
+        "quizId": { "type": "string" },
+        "questionId": { "type": "string" },
+        "userAnswer": { "type": "object" },
+        "isFlagged": { "type": "boolean" },
+        "isCorrect": { "type": "boolean" },
+        "scoreGiven": { "type": "number" },
+        "teacherComment": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["participantId", "quizId", "questionId"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Application settings and metadata",
+      "type": "object",
+      "properties": {
+        "schoolName": { "type": "string" },
+        "schoolLogo": { "type": "string" },
+        "academicYear": { "type": "string" }
+      }
+    }
+  }
+}

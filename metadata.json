@@ -1,0 +1,6 @@
+{
+  "name": "AKM Quiz - SMKS SANJAYA BAJAWA",
+  "description": "Aplikasi Web Quiz AKM (Asesmen Kompetensi Minimum) SMKS SANJAYA BAJAWA",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
