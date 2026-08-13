@@ -313,6 +313,30 @@ function parseFromHtmlTables(tables: HTMLTableElement[]): Partial<Question>[] {
  */
 function parseMultiColumnTable(rows: HTMLElement[]): Partial<Question>[] {
   const questions: Partial<Question>[] = [];
+  if (rows.length < 2) return questions;
+
+  // 1. A multi-column horizontal table MUST have at least 3 columns!
+  const sampleCells = Array.from(rows[0].querySelectorAll('td, th'));
+  if (sampleCells.length < 3) return [];
+
+  // 2. Check if table contains CBT macro keys in Column 0
+  const hasCbtTags = rows.some((row) => {
+    const cells = Array.from(row.querySelectorAll('td, th')).map((c) => (c.textContent || '').trim().toUpperCase());
+    if (cells.length < 1) return false;
+    const col0 = cells[0].replace(/[\.\:\s\(\)\[\]]/g, '');
+    return (
+      col0.includes('KATEGORI') ||
+      col0.includes('BOBOT') ||
+      col0.includes('KUNCI') ||
+      col0.includes('PEMBAHASAN') ||
+      col0.includes('TIPE') ||
+      col0.includes('STIMULUS') ||
+      col0.includes('AKM') ||
+      /^OPSI[A-E]$/.test(col0) ||
+      /^[A-E]$/.test(col0)
+    );
+  });
+  if (hasCbtTags) return [];
 
   let headerRowIdx = -1;
   let colSoalIdx = -1;
@@ -326,12 +350,12 @@ function parseMultiColumnTable(rows: HTMLElement[]): Partial<Question>[] {
     );
 
     cells.forEach((text, cIdx) => {
-      if (text.includes('SOAL') || text.includes('PERTANYAAN') || text.includes('QUESTION')) {
+      if (text.length < 30 && (text.includes('SOAL') || text.includes('PERTANYAAN') || text.includes('QUESTION'))) {
         colSoalIdx = cIdx;
         headerRowIdx = r;
-      } else if (text.includes('KUNCI') || text.includes('JAWABAN') || text.includes('ANS')) {
+      } else if (text.length < 30 && (text.includes('KUNCI') || text.includes('JAWABAN') || text.includes('ANS'))) {
         colKunciIdx = cIdx;
-      } else if (text.includes('BOBOT') || text.includes('NILAI')) {
+      } else if (text.length < 30 && (text.includes('BOBOT') || text.includes('NILAI'))) {
         colBobotIdx = cIdx;
       } else {
         const optMatch = text.match(/^(?:PIL|PILIHAN|OPSI)?\s*([A-E])$/i);
