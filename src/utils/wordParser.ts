@@ -1,9 +1,21 @@
 import mammoth from 'mammoth';
 import { Question } from '../types';
 
-/**
- * Extracts cell content preserving <img> tags and formatted line breaks.
- */
+export function downloadWordTemplate() {
+  const blob = new Blob(
+    [
+      `TEMPLATE SOAL CBT MACRO\n======================\nFormat Tabel 2 Kolom:\n- Kolom 1: SOAL / PILIHAN (A-E) / KUNCI / PEMBAHASAN / STIMULUS / TIPE / KATEGORI / BOBOT\n- Kolom 2: Isi Teks atau Gambar\n`,
+    ],
+    { type: 'text/plain;charset=utf-8' }
+  );
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Template_Soal_Word.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function extractCellHtmlOrText(cell: HTMLElement): string {
   if (!cell) return '';
 
@@ -18,7 +30,10 @@ function extractCellHtmlOrText(cell: HTMLElement): string {
     const imgs = Array.from(clone.querySelectorAll('img'));
     imgs.forEach((img) => {
       img.removeAttribute('style');
-      img.setAttribute('class', 'max-h-80 my-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm inline-block object-contain');
+      img.setAttribute(
+        'class',
+        'max-h-80 my-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm inline-block object-contain'
+      );
     });
 
     let html = clone.innerHTML.trim();
@@ -49,7 +64,6 @@ export async function parseQuestionsFromWord(file: File): Promise<Question[]> {
 
     return parseHtmlOrText(htmlString, rawText);
   } catch (mammothErr) {
-    console.warn('Mammoth parsing note (file might be HTML/DOC text):', mammothErr);
     const text = await file.text();
     return parseHtmlOrText(text, text);
   }
@@ -69,7 +83,7 @@ function parseHtmlOrText(htmlString: string, rawText: string): Question[] {
         }
       }
     } catch (e) {
-      console.warn('DOMParser failed, falling back to text parsing', e);
+      console.warn('DOMParser fallback', e);
     }
   }
 
@@ -77,59 +91,13 @@ function parseHtmlOrText(htmlString: string, rawText: string): Question[] {
 }
 
 function parseFromHtmlTables(tables: HTMLTableElement[]): Partial<Question>[] {
-  const allQuestions: Partial<Question>[] = [];
-
-  for (const table of tables) {
-    const rows = Array.from(table.querySelectorAll('tr')) as HTMLElement[];
-    if (rows.length === 0) continue;
-
-    const multiColQuestions = parseMultiColumnTable(rows);
-    if (multiColQuestions.length > 0) {
-      allQuestions.push(...multiColQuestions);
-    }
-  }
-  if (allQuestions.length > 0) return allQuestions;
-
   const allRows: HTMLElement[] = [];
   for (const table of tables) {
     const rows = Array.from(table.querySelectorAll('tr')) as HTMLElement[];
     allRows.push(...rows);
   }
 
-  const verticalQuestions = parseVerticalCbtTable(allRows);
-  if (verticalQuestions.length > 0) {
-    return verticalQuestions;
-  }
-
-  return [];
-}
-
-function parseMultiColumnTable(rows: HTMLElement[]): Partial<Question>[] {
-  const questions: Partial<Question>[] = [];
-  if (rows.length < 2) return questions;
-
-  const sampleCells = Array.from(rows[0].querySelectorAll('td, th'));
-  if (sampleCells.length < 3) return [];
-
-  const hasCbtTags = rows.some((row) => {
-    const cells = Array.from(row.querySelectorAll('td, th')).map((c) => (c.textContent || '').trim().toUpperCase());
-    if (cells.length < 1) return false;
-    const col0 = cells[0].replace(/[\.\:\s\(\)\[\]]/g, '');
-    return (
-      col0.includes('KATEGORI') ||
-      col0.includes('BOBOT') ||
-      col0.includes('KUNCI') ||
-      col0.includes('PEMBAHASAN') ||
-      col0.includes('TIPE') ||
-      col0.includes('STIMULUS') ||
-      col0.includes('AKM') ||
-      /^OPSI[A-E]$/.test(col0) ||
-      /^[A-E]$/.test(col0)
-    );
-  });
-  if (hasCbtTags) return [];
-
-  return [];
+  return parseVerticalCbtTable(allRows);
 }
 
 function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
@@ -223,13 +191,10 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
       }
     } else if (optMatch) {
       ensureCurrentQ();
-      let optText = col2Raw;
-      let isCorrect = false;
-
       rawOptions.push({
         label: optMatch[1].toUpperCase(),
-        text: optText,
-        isCorrect,
+        text: col2Raw,
+        isCorrect: false,
       });
     } else if (isKunci) {
       ensureCurrentQ();
