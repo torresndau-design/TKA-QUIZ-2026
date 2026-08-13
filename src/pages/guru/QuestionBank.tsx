@@ -3,12 +3,14 @@ import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
+import { RichText } from '../../components/common/RichText';
 import { Question, Quiz, User, Subject } from '../../types';
 import {
   getAllQuestions,
   saveQuestion,
   deleteQuestion,
   deleteMultipleQuestions,
+  clearAllQuestions,
   getQuizzes,
   getUsers,
   getSubjects,
@@ -134,6 +136,18 @@ export const QuestionBank: React.FC = () => {
         .map((q) => ({ id: q.id, quizId: q.quizId }));
       await deleteMultipleQuestions(itemsToDelete);
       showToast(`${selectedIds.length} soal berhasil dihapus dari Bank Soal!`, 'info');
+      loadData();
+    }
+  };
+
+  const handleClearAllQuestions = async () => {
+    const confirmed = await showConfirmDialog(
+      'Kosongkan Semua Bank Soal?',
+      'Apakah Anda yakin ingin menghapus SELURUH soal yang ada di Bank Soal? Semua soal bawaan dan data soal lainnya akan dihapus.'
+    );
+    if (confirmed) {
+      await clearAllQuestions();
+      showToast('Seluruh bank soal berhasil dikosongkan!', 'success');
       loadData();
     }
   };
@@ -291,9 +305,9 @@ export const QuestionBank: React.FC = () => {
         </div>
 
         <div className="pl-7 space-y-1.5">
-          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-relaxed">
-            {q.questionText}
-          </p>
+          <div className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-relaxed">
+            <RichText content={q.questionText} />
+          </div>
 
           {quiz && (
             <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
@@ -303,7 +317,7 @@ export const QuestionBank: React.FC = () => {
 
           {q.discussion && (
             <div className="text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
-              💡 <b>Pembahasan:</b> {q.discussion}
+              💡 <b>Pembahasan:</b> <RichText content={q.discussion} className="inline-block" />
             </div>
           )}
         </div>
@@ -326,7 +340,17 @@ export const QuestionBank: React.FC = () => {
         </div>
 
         {/* View mode toggle & expand controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {questions.length > 0 && (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={handleClearAllQuestions}
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+            >
+              Kosongkan Semua Bank Soal
+            </Button>
+          )}
           {viewMode === 'FOLDER' && (
             <div className="flex items-center gap-1">
               <Button size="sm" variant="outline" onClick={() => toggleAllFolders(true)}>

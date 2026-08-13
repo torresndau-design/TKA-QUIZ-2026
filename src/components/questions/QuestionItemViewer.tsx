@@ -47,8 +47,9 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
       {/* Question Text */}
       <RichText content={question.questionText} className="text-base font-semibold text-slate-800 dark:text-slate-100 leading-relaxed" />
 
-      {/* Interactive Answer Input */}
+      {/* Interactive Answer Input based on 16 Question Types */}
       <div className="pt-2">
+        {/* 1. Pilihan Ganda / 14. Gambar / 15. Audio / 16. Video */}
         {['pilihan_ganda', 'pilihan_gambar', 'pilihan_audio', 'pilihan_video'].includes(question.type) && (
           <div className="grid grid-cols-1 gap-3">
             {question.options?.map((opt) => {
@@ -65,27 +66,256 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
                   <input
                     type="radio"
                     name={`q_${question.id}`}
+                    value={opt.id}
                     checked={isSelected}
                     onChange={() => onChange(opt.id)}
-                    className="sr-only"
+                    className="mt-1 w-4 h-4 text-[#2563EB] focus:ring-blue-500"
                   />
-                  <div className="flex items-start gap-3 w-full">
-                    <span
-                      className={`w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 ${
-                        isSelected
-                          ? 'bg-[#2563EB] text-white'
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                      }`}
-                    >
-                      {opt.label || opt.id.toUpperCase()}
-                    </span>
-                    <div className="flex-1 text-sm text-slate-800 dark:text-slate-200">
-                      <RichText content={opt.text} />
-                    </div>
+                  <div className="ml-3 flex-1">
+                    <RichText content={opt.text} className="text-sm font-medium text-slate-800 dark:text-slate-100" />
+                    {opt.imageUrl && (
+                      <img src={opt.imageUrl} alt="Pilihan" className="mt-2 max-h-40 rounded-lg border" />
+                    )}
+                    {opt.audioUrl && (
+                      <audio controls src={opt.audioUrl} className="mt-2 w-full max-w-sm" />
+                    )}
+                    {opt.videoUrl && (
+                      <video controls src={opt.videoUrl} className="mt-2 max-h-48 rounded-lg" />
+                    )}
                   </div>
                 </label>
               );
             })}
+          </div>
+        )}
+
+        {/* 2. PG Kompleks & 12. Checklist */}
+        {['pg_kompleks', 'checklist'].includes(question.type) && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+              Pilih satu atau lebih jawaban yang sesuai.
+            </p>
+            {question.options?.map((opt) => {
+              const currentArr: string[] = Array.isArray(value) ? value : [];
+              const isChecked = currentArr.includes(opt.id);
+
+              const handleCheck = () => {
+                if (isChecked) {
+                  onChange(currentArr.filter((id) => id !== opt.id));
+                } else {
+                  onChange([...currentArr, opt.id]);
+                }
+              };
+
+              return (
+                <label
+                  key={opt.id}
+                  className={`flex items-start p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                    isChecked
+                      ? 'border-[#2563EB] bg-blue-50/50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={handleCheck}
+                    className="mt-1 w-4 h-4 text-[#2563EB] rounded focus:ring-blue-500"
+                  />
+                  <div className="ml-3 flex-1">
+                    <RichText content={opt.text} className="text-sm font-medium text-slate-800 dark:text-slate-100" />
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 3. Menjodohkan & 11. Drag and Drop */}
+        {['menjodohkan', 'drag_drop'].includes(question.type) && (
+          <div className="space-y-3">
+            {(() => {
+              const pairs = normalizeMatchingPairs(question.matchingPairs, question.options);
+              const currentMap = typeof value === 'object' && value ? value : {};
+
+              return (
+                <MatchingLineQuestion
+                  questionId={question.id}
+                  pairs={pairs}
+                  value={currentMap}
+                  onChange={onChange}
+                  readOnly={showDiscussion}
+                />
+              );
+            })()}
+          </div>
+        )}
+
+        {/* 4. Benar Salah & 5. Setuju Tidak Setuju */}
+        {['benar_salah', 'setuju_tidak_setuju'].includes(question.type) && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse border border-slate-200 dark:border-slate-700 rounded-xl">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  <th className="p-3 border border-slate-200 dark:border-slate-700">Pernyataan</th>
+                  <th className="p-3 border border-slate-200 dark:border-slate-700 text-center w-28">
+                    {question.type === 'benar_salah' ? 'Benar' : 'Setuju'}
+                  </th>
+                  <th className="p-3 border border-slate-200 dark:border-slate-700 text-center w-28">
+                    {question.type === 'benar_salah' ? 'Salah' : 'Tidak Setuju'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const tfItems =
+                    question.trueFalseItems && question.trueFalseItems.length > 0
+                      ? question.trueFalseItems
+                      : question.options && question.options.length > 0
+                      ? question.options.map((opt, idx) => ({
+                          id: opt.id || `tf_${idx}`,
+                          statement: opt.text,
+                          correctAnswer: opt.isCorrect ?? true,
+                        }))
+                      : [];
+
+                  return tfItems.map((item) => {
+                    const currentMap = typeof value === 'object' && value ? value : {};
+                    const currentChoice = currentMap[item.id];
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="p-3 border border-slate-200 dark:border-slate-700 font-medium text-slate-800 dark:text-slate-200">
+                          <RichText content={item.statement} />
+                        </td>
+                        <td className="p-3 border border-slate-200 dark:border-slate-700 text-center">
+                          <input
+                            type="radio"
+                            name={`tf_${item.id}`}
+                            checked={currentChoice === true}
+                            onChange={() => onChange({ ...currentMap, [item.id]: true })}
+                            className="w-4 h-4 text-[#2563EB]"
+                          />
+                        </td>
+                        <td className="p-3 border border-slate-200 dark:border-slate-700 text-center">
+                          <input
+                            type="radio"
+                            name={`tf_${item.id}`}
+                            checked={currentChoice === false}
+                            onChange={() => onChange({ ...currentMap, [item.id]: false })}
+                            className="w-4 h-4 text-[#2563EB]"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 6. Isian Singkat & 13. Melengkapi Kalimat */}
+        {['isian_singkat', 'melengkapi_kalimat'].includes(question.type) && (
+          <div>
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Ketik jawaban singkat Anda di sini..."
+              className="w-full p-3 text-sm bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:border-[#2563EB] focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* 7. Isian Angka */}
+        {question.type === 'isian_angka' && (
+          <div>
+            <input
+              type="number"
+              step="any"
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Masukkan angka (contoh: 85)"
+              className="w-full max-w-xs p-3 text-sm bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:border-[#2563EB] focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* 8. Uraian Pendek & 9. Uraian Panjang */}
+        {['uraian_pendek', 'uraian_panjang'].includes(question.type) && (
+          <div>
+            <textarea
+              rows={question.type === 'uraian_panjang' ? 6 : 3}
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Ketik uraian jawaban secara rinci di sini..."
+              className="w-full p-3 text-sm bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:border-[#2563EB] focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* 10. Mengurutkan */}
+        {question.type === 'mengurutkan' && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Gunakan tombol panah Naik / Turun untuk mengurutkan item dari yang paling awal/terkecil.
+            </p>
+            {(() => {
+              const currentSeq: string[] =
+                Array.isArray(value) && value.length > 0 ? value : question.sequenceItems || [];
+
+              const moveUp = (idx: number) => {
+                if (idx === 0) return;
+                const copy = [...currentSeq];
+                const temp = copy[idx - 1];
+                copy[idx - 1] = copy[idx];
+                copy[idx] = temp;
+                onChange(copy);
+              };
+
+              const moveDown = (idx: number) => {
+                if (idx === currentSeq.length - 1) return;
+                const copy = [...currentSeq];
+                const temp = copy[idx + 1];
+                copy[idx + 1] = copy[idx];
+                copy[idx] = temp;
+                onChange(copy);
+              };
+
+              return (
+                <div className="space-y-2">
+                  {currentSeq.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl"
+                    >
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {idx + 1}. {item}
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveUp(idx)}
+                          disabled={idx === 0}
+                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded disabled:opacity-40"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveDown(idx)}
+                          disabled={idx === currentSeq.length - 1}
+                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded disabled:opacity-40"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
