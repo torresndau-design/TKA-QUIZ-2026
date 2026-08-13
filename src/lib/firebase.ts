@@ -15,8 +15,12 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Connect to primary default Firestore instance (matching Cloud Firestore (default) in Firebase Console)
-export const db = getFirestore(app);
+// Specify databaseId if provided in config (and not default)
+const firestoreDatabaseId = firebaseConfigJson.firestoreDatabaseId;
+export const db =
+  firestoreDatabaseId && firestoreDatabaseId !== '(default)'
+    ? getFirestore(app, firestoreDatabaseId)
+    : getFirestore(app);
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);

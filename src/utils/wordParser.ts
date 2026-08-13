@@ -804,11 +804,11 @@ export function downloadWordTemplate() {
   </tr>
 </table>
 
-<div class="section-tag">CONTOH 4: MENJODOHKAN (PENJODOHAN DENGAN GARIS)</div>
+<div class="section-tag">CONTOH 4: MENJODOHKAN (PENJODOHAN)</div>
 <table>
   <tr>
     <td class="col-no">4.</td>
-    <td class="col-text">Jodohkanlah cabang ilmu geografi di sebelah kiri dengan objek kajiannya yang tepat di sebelah kanan!</td>
+    <td class="col-text">Jodohkanlah nama pahlawan nasional di sebelah kiri dengan karya / perjuangannya di sebelah kanan!</td>
   </tr>
   <tr>
     <td class="col-no">TIPE</td>
@@ -816,7 +816,7 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">KATEGORI</td>
-    <td class="col-text">Sains</td>
+    <td class="col-text">Sosial Budaya</td>
   </tr>
   <tr>
     <td class="col-no">BOBOT</td>
@@ -824,51 +824,23 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">A</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari iklim = Klimatologi</td>
+    <td class="col-text">Pangeran Diponegoro = Memimpin Perang Jawa (1825-1830)</td>
   </tr>
   <tr>
     <td class="col-no">B</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari cuaca = Meteorologi</td>
+    <td class="col-text">Ki Hajar Dewantara = Bapak Pendidikan Nasional</td>
   </tr>
   <tr>
     <td class="col-no">C</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari bentuk muka bumi = Geomorfologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">D</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari perairan di darat = Hidrologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">E</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari perairan laut = Oceanografi</td>
-  </tr>
-  <tr>
-    <td class="col-no">F</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari peta dan pemetaan = Kartografi</td>
-  </tr>
-  <tr>
-    <td class="col-no">G</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari tanah = Pedologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">H</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari manusia = Antropologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">I</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari batuan-batuan bernilai tinggi = Mineralogi</td>
-  </tr>
-  <tr>
-    <td class="col-no">J</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari struktur lapisan bumi = Geologi</td>
+    <td class="col-text">Pattimura = Pahlawan dari Maluku</td>
   </tr>
   <tr>
     <td class="col-no">KUNCI</td>
-    <td class="col-text">1-F, 2-G, 3-C, 4-D, 5-I, 6-E, 7-J, 8-A, 9-H, 10-B</td>
+    <td class="col-text">A-1, B-2, C-3</td>
   </tr>
   <tr>
     <td class="col-no">PEMBAHASAN</td>
-    <td class="col-text">Setiap cabang ilmu geografi dan objek kajiannya terhubung dengan garis yang tepat.</td>
+    <td class="col-text">Pasangan tokoh dan perjuangannya sudah tepat.</td>
   </tr>
 </table>
 

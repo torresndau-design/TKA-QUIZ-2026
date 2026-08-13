@@ -3,9 +3,9 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { showToast } from '../../components/common/Toast';
 import { AppSettings } from '../../types';
-import { getAppSettings, saveAppSettings, forceSyncToFirestore } from '../../services/db';
+import { getAppSettings, saveAppSettings } from '../../services/db';
 import { exportDatabaseBackup, restoreDatabaseBackup } from '../../utils/backup';
-import { Download, Upload, Save, School, Database, RefreshCw } from 'lucide-react';
+import { Download, Upload, Save, School } from 'lucide-react';
 
 import { SchoolLogo } from '../../components/common/SchoolLogo';
 
@@ -18,7 +18,6 @@ export const SettingsBackup: React.FC = () => {
   });
 
   const [restoring, setRestoring] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -32,17 +31,6 @@ export const SettingsBackup: React.FC = () => {
     e.preventDefault();
     await saveAppSettings(settings);
     showToast('Pengaturan sekolah berhasil disimpan!');
-  };
-
-  const handleSyncFirestore = async () => {
-    setSyncing(true);
-    const res = await forceSyncToFirestore();
-    setSyncing(false);
-    if (res.success) {
-      showToast(`Berhasil menyinkronkan ${res.count} dokumen langsung ke Firestore!`);
-    } else {
-      showToast(`Gagal menyinkronkan ke Firestore: ${res.error}`, 'error');
-    }
   };
 
   const handleBackup = async () => {
@@ -149,20 +137,6 @@ export const SettingsBackup: React.FC = () => {
 
         {/* Auto Backup & Restore Data */}
         <div className="space-y-4">
-          <Card title="Koneksi Database Firestore" subtitle="Pastikan data tersimpan secara realtime di Cloud Firestore">
-            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-              Klik tombol di bawah ini untuk mendorong seluruh data lokal (Pengguna, Mapel, Quiz, Soal, Hasil Peserta) ke Cloud Firestore (default database).
-            </p>
-            <Button
-              onClick={handleSyncFirestore}
-              disabled={syncing}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-              icon={<RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />}
-            >
-              {syncing ? 'Menyinkronkan Data...' : 'Sinkronkan Data ke Firestore'}
-            </Button>
-          </Card>
-
           <Card title="Cadangan Data (Backup)" subtitle="Unduh seluruh data Firestore / Local ke file JSON">
             <p className="text-xs text-slate-500 mb-4 leading-relaxed">
               Disarankan untuk melakukan backup berkala secara rutin guna mencegah kehilangan data penting.

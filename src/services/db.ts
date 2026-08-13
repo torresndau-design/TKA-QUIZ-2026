@@ -106,7 +106,7 @@ export const DEFAULT_QUIZZES: Quiz[] = [
     showDiscussion: true,
     status: 'PUBLISHED',
     token: 'TKA2026',
-    questionCount: 0,
+    questionCount: 5,
     createdAt: new Date().toISOString(),
   },
   {
@@ -126,12 +126,158 @@ export const DEFAULT_QUIZZES: Quiz[] = [
     showDiscussion: true,
     status: 'PUBLISHED',
     token: 'NUM123',
-    questionCount: 0,
+    questionCount: 4,
     createdAt: new Date().toISOString(),
   },
 ];
 
-export const DEFAULT_QUESTIONS: Question[] = [];
+export const DEFAULT_QUESTIONS: Question[] = [
+  {
+    id: 'q_1',
+    quizId: 'quiz_1',
+    type: 'pilihan_ganda',
+    category: 'Literasi',
+    chapter: 'Teks Informasi',
+    subChapter: 'Penghematan Energi & Kelestarian Lingkungan',
+    difficulty: 'Sedang',
+    cognitiveLevel: 'Aplikasi (L2)',
+    tags: ['Energi', 'Literasi', 'Lingkungan'],
+    questionText: 'Berdasarkan artikel stimulus di atas, apakah langkah utama yang paling efektif dilakukan oleh masyarakat dalam mengurangi limbah plastik harian?',
+    stimulus: {
+      type: 'text',
+      title: 'Stimulus: Krisis Sampah Plastik Global',
+      content: 'Penggunaan plastik sekali pakai meningkat signifikan setiap tahunnya. Berdasarkan data Kemitraan Sampah Plastik, lebih dari 8 juta ton sampah plastik bermuara di lautan setiap tahun. Upaya pengurangan dapat dimulai dari pemilahan sampah organik dan anorganik di tingkat rumah tangga serta membiasakan penggunaan wadah reusable.',
+    },
+    options: [
+      { id: 'opt_1', text: 'Membakar sampah plastik di pekarangan rumah', isCorrect: false },
+      { id: 'opt_2', text: 'Membawa wadah dan kantong belanja sendiri yang reusable', isCorrect: true },
+      { id: 'opt_3', text: 'Menimbun sampah di dalam tanah agar terurai', isCorrect: false },
+      { id: 'opt_4', text: 'Menunggu petugas kebersihan mengangkut seluruh limbah', isCorrect: false },
+    ],
+    discussion: 'Membawa kantong belanja reusable secara signifikan mengurangi produksi plastik sekali pakai.',
+    weight: 20,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'q_2',
+    quizId: 'quiz_1',
+    type: 'pg_kompleks',
+    category: 'Literasi',
+    chapter: 'Teks Informasi',
+    subChapter: 'Gaya Hidup Sehat',
+    difficulty: 'Sedang',
+    cognitiveLevel: 'Penalaran (L3)',
+    tags: ['Kesehatan', 'Nutrisi'],
+    questionText: 'Manakah di antara pernyataan berikut yang sesuai dengan upaya menjaga kesehatan pencernaan menurut stimulus? (Pilih semua yang benar)',
+    stimulus: {
+      type: 'text',
+      title: 'Stimulus: Menjaga Keseimbangan Mikrobioma Usus',
+      content: 'Pencernaan yang sehat dipengaruhi oleh kecukupan asupan serat pangan dari buah dan sayur, konsumsi air putih yang cukup (minimal 2 liter sehari), serta pembatasan gula berlebih. Olahraga teratur juga memperlancar motilitas usus.',
+    },
+    options: [
+      { id: 'opt_21', text: 'Mengonsumsi air putih minimal 2 liter sehari', isCorrect: true },
+      { id: 'opt_22', text: 'Menghindari buah dan sayur berkadar air tinggi', isCorrect: false },
+      { id: 'opt_23', text: 'Memenuhi asupan serat pangan dari sayuran', isCorrect: true },
+      { id: 'opt_24', text: 'Meningkatkan konsumsi minuman manis kemasan', isCorrect: false },
+    ],
+    discussion: 'Minum air putih secukupnya dan makan makanan berserat tinggi adalah fakta kesehatan usus.',
+    weight: 20,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'q_3',
+    quizId: 'quiz_1',
+    type: 'benar_salah',
+    category: 'Literasi',
+    chapter: 'Teks Fiksi',
+    subChapter: 'Analisis Karakter Tokoh',
+    difficulty: 'Mudah',
+    cognitiveLevel: 'Pemahaman (L1)',
+    tags: ['Fiksi', 'Sastra'],
+    questionText: 'Tentukan Benar atau Salah untuk setiap pernyataan mengenai watak tokoh Pak Aris berikut!',
+    stimulus: {
+      type: 'text',
+      title: 'Kutipan Cerpen: Pelita di Desa Sejahtera',
+      content: 'Pak Aris selalu menyempatkan diri mengajar anak-anak di kolong jembatan selepas melaut. Meski fisiknya lelah, senyumnya tak pernah pudar ketika melihat anak-anak antusias membaca buku cerita bekas yang ia kumpulkan.',
+    },
+    trueFalseItems: [
+      { id: 'tf_1', statement: 'Pak Aris memiliki sifat dermawan dan berjiwa sosial tinggi.', correctAnswer: true },
+      { id: 'tf_2', statement: 'Pak Aris adalah seorang guru profesional di sekolah favorit kota.', correctAnswer: false },
+      { id: 'tf_3', statement: 'Pak Aris mengumpulkan buku cerita bekas untuk anak-anak.', correctAnswer: true },
+    ],
+    discussion: 'Pak Aris adalah nelayan yang berjiwa sosial dan mengajar anak-anak dengan buku bekas.',
+    weight: 20,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'q_4',
+    quizId: 'quiz_1',
+    type: 'menjodohkan',
+    category: 'Literasi',
+    chapter: 'Teks Prosedur',
+    subChapter: 'Peralatan Digital',
+    difficulty: 'Sedang',
+    cognitiveLevel: 'Aplikasi (L2)',
+    tags: ['Teknologi', 'Prosedur'],
+    questionText: 'Jodohkan istilah istilah teknologi berikut dengan fungsinya yang tepat!',
+    matchingPairs: [
+      { id: 'pair_1', leftItem: 'Firewall', rightItem: 'Sistem keamanan jaringan pembatas akses tak dikenal' },
+      { id: 'pair_2', leftItem: 'Backup Data', rightItem: 'Proses pencadangan dokumen untuk mencegah kehilangan' },
+      { id: 'pair_3', leftItem: 'Enkripsi', rightItem: 'Pengodean informasi rahasia agar aman saat dikirim' },
+    ],
+    discussion: 'Firewall untuk keamanan, Backup untuk cadangan, Enkripsi untuk penyandian data.',
+    weight: 20,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'q_5',
+    quizId: 'quiz_1',
+    type: 'uraian_pendek',
+    category: 'Literasi',
+    chapter: 'Teks Argumentasi',
+    subChapter: 'Kritik Sosial',
+    difficulty: 'Sukar',
+    cognitiveLevel: 'Penalaran (L3)',
+    tags: ['Opini', 'Uraian'],
+    questionText: 'Jelaskan pendapat Anda dalam 2-3 kalimat mengenai pengaruh kecerdasan buatan (AI) terhadap masa depan dunia kerja!',
+    discussion: 'Jawaban dinilai berdasarkan kejelasan argumentasi, struktur kalimat, dan relevansi pemikiran.',
+    weight: 20,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'q_6',
+    quizId: 'quiz_2',
+    type: 'isian_angka',
+    category: 'Numerasi',
+    chapter: 'Statistika',
+    subChapter: 'Rata-rata Hitung',
+    difficulty: 'Sedang',
+    cognitiveLevel: 'Aplikasi (L2)',
+    tags: ['Numerasi', 'Statistika'],
+    questionText: 'Data nilai ujian matematika 5 siswa adalah: 80, 85, 90, 75, dan 95. Berapakah nilai rata-rata (mean) dari kelima siswa tersebut?',
+    numericAnswer: 85,
+    numericTolerance: 0,
+    discussion: 'Rata-rata = (80 + 85 + 90 + 75 + 95) / 5 = 425 / 5 = 85.',
+    weight: 25,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'q_7',
+    quizId: 'quiz_2',
+    type: 'mengurutkan',
+    category: 'Numerasi',
+    chapter: 'Bilangan Pecahan',
+    subChapter: 'Pengurutan Nilai',
+    difficulty: 'Sedang',
+    cognitiveLevel: 'Aplikasi (L2)',
+    tags: ['Numerasi', 'Pecahan'],
+    questionText: 'Urutkan pecahan berikut dari nilai TERKECIL hingga TERBESAR!',
+    sequenceItems: ['1/4 (0.25)', '1/2 (0.50)', '3/4 (0.75)', '5/4 (1.25)'],
+    discussion: '1/4 = 0.25 < 1/2 = 0.50 < 3/4 = 0.75 < 5/4 = 1.25.',
+    weight: 25,
+    createdAt: new Date().toISOString(),
+  }
+];
 
 // Initialize Local/Firestore Defaults
 export async function seedInitialData() {
@@ -146,74 +292,50 @@ export async function seedInitialData() {
     setLocalData('answers', []);
   }
 
-  // Clean up legacy sample questions q_1..q_7 from local storage and Firestore if existing
-  const legacyIds = ['q_1', 'q_2', 'q_3', 'q_4', 'q_5', 'q_6', 'q_7'];
-  const currentLocalQuestions = getLocalData<Question[]>('questions', []);
-  const filteredLocalQuestions = currentLocalQuestions.filter((q) => !legacyIds.includes(q.id));
-  if (filteredLocalQuestions.length !== currentLocalQuestions.length) {
-    setLocalData('questions', filteredLocalQuestions);
-  }
-
-  for (const id of legacyIds) {
-    deleteDoc(doc(db, 'questions', id)).catch(() => {});
-  }
-
-  // Seed default users, quizzes, subjects, questions, settings into Firestore
+  // Seed default users, quizzes, subjects, questions, settings into Firestore if not present
   try {
-    const currentUsers = getLocalData<User[]>('users', DEFAULT_USERS);
-    for (const u of currentUsers) {
-      await setDoc(doc(db, 'users', u.uid), u, { merge: true });
+    for (const u of DEFAULT_USERS) {
+      const uRef = doc(db, 'users', u.uid);
+      const uSnap = await getDoc(uRef);
+      if (!uSnap.exists()) {
+        await setDoc(uRef, u);
+      }
     }
-
-    const currentSubjects = getLocalData<Subject[]>('subjects', DEFAULT_SUBJECTS);
-    for (const s of currentSubjects) {
-      await setDoc(doc(db, 'subjects', s.id), s, { merge: true });
+    for (const q of DEFAULT_QUIZZES) {
+      const qRef = doc(db, 'quizzes', q.id);
+      const qSnap = await getDoc(qRef);
+      if (!qSnap.exists()) {
+        await setDoc(qRef, q);
+      }
     }
-
-    const currentQuizzes = getLocalData<Quiz[]>('quizzes', DEFAULT_QUIZZES);
-    for (const q of currentQuizzes) {
-      await setDoc(doc(db, 'quizzes', q.id), q, { merge: true });
+    for (const s of DEFAULT_SUBJECTS) {
+      const sRef = doc(db, 'subjects', s.id);
+      const sSnap = await getDoc(sRef);
+      if (!sSnap.exists()) {
+        await setDoc(sRef, s);
+      }
     }
-
-    const currentQuestions = getLocalData<Question[]>('questions', DEFAULT_QUESTIONS);
-    for (const qst of currentQuestions) {
-      await setDoc(doc(db, 'questions', qst.id), qst, { merge: true });
+    for (const qst of DEFAULT_QUESTIONS) {
+      const qstRef = doc(db, 'questions', qst.id);
+      const qstSnap = await getDoc(qstRef);
+      if (!qstSnap.exists()) {
+        await setDoc(qstRef, qst);
+      }
     }
-
-    const currentParticipants = getLocalData<Participant[]>('participants', DEFAULT_PARTICIPANTS);
-    for (const p of currentParticipants) {
-      await setDoc(doc(db, 'participants', p.id), p, { merge: true });
+    for (const p of DEFAULT_PARTICIPANTS) {
+      const pRef = doc(db, 'participants', p.id);
+      const pSnap = await getDoc(pRef);
+      if (!pSnap.exists()) {
+        await setDoc(pRef, p);
+      }
     }
-
-    const currentSettings = getLocalData<AppSettings>('settings', DEFAULT_SETTINGS);
-    await setDoc(doc(db, 'settings', 'global'), currentSettings, { merge: true });
+    const setRef = doc(db, 'settings', 'global');
+    const setSnap = await getDoc(setRef);
+    if (!setSnap.exists()) {
+      await setDoc(setRef, DEFAULT_SETTINGS);
+    }
   } catch (e) {
     console.warn('Firestore initial seed notice:', e);
-  }
-}
-
-// Force Sync All Local Data directly into Firestore
-export async function forceSyncToFirestore(): Promise<{ success: boolean; count: number; error?: string }> {
-  try {
-    const users = getLocalData<User[]>('users', DEFAULT_USERS);
-    const subjects = getLocalData<Subject[]>('subjects', DEFAULT_SUBJECTS);
-    const quizzes = getLocalData<Quiz[]>('quizzes', DEFAULT_QUIZZES);
-    const questions = getLocalData<Question[]>('questions', DEFAULT_QUESTIONS);
-    const participants = getLocalData<Participant[]>('participants', DEFAULT_PARTICIPANTS);
-    const settings = getLocalData<AppSettings>('settings', DEFAULT_SETTINGS);
-
-    let count = 0;
-    for (const u of users) { await setDoc(doc(db, 'users', u.uid), u, { merge: true }); count++; }
-    for (const s of subjects) { await setDoc(doc(db, 'subjects', s.id), s, { merge: true }); count++; }
-    for (const q of quizzes) { await setDoc(doc(db, 'quizzes', q.id), q, { merge: true }); count++; }
-    for (const qst of questions) { await setDoc(doc(db, 'questions', qst.id), qst, { merge: true }); count++; }
-    for (const p of participants) { await setDoc(doc(db, 'participants', p.id), p, { merge: true }); count++; }
-    await setDoc(doc(db, 'settings', 'global'), settings, { merge: true }); count++;
-
-    return { success: true, count };
-  } catch (err: any) {
-    console.error('Failed to sync to Firestore:', err);
-    return { success: false, count: 0, error: err.message || 'Gagal tersambung ke Firestore' };
   }
 }
 
@@ -520,22 +642,6 @@ export async function deleteMultipleQuestions(items: { id: string; quizId: strin
       quiz.questionCount = quizQuestions.length;
       await saveQuiz(quiz);
     }
-  }
-}
-
-export async function clearAllQuestions(): Promise<void> {
-  try {
-    const all = await getAllQuestions();
-    await Promise.all(all.map((q) => deleteDoc(doc(db, 'questions', q.id)).catch(() => {})));
-  } catch (e) {
-    console.warn('clearAllQuestions error:', e);
-  }
-  setLocalData('questions', []);
-
-  const quizzes = await getQuizzes();
-  for (const q of quizzes) {
-    q.questionCount = 0;
-    await saveQuiz(q);
   }
 }
 
