@@ -9,6 +9,7 @@ import {
   saveQuestion,
   deleteQuestion,
   deleteMultipleQuestions,
+  clearAllQuestions,
   getQuizzes,
   getUsers,
   getSubjects,
@@ -134,6 +135,18 @@ export const QuestionBank: React.FC = () => {
         .map((q) => ({ id: q.id, quizId: q.quizId }));
       await deleteMultipleQuestions(itemsToDelete);
       showToast(`${selectedIds.length} soal berhasil dihapus dari Bank Soal!`, 'info');
+      loadData();
+    }
+  };
+
+  const handleClearAllQuestions = async () => {
+    const confirmed = await showConfirmDialog(
+      'Kosongkan Semua Bank Soal?',
+      'Apakah Anda yakin ingin menghapus SELURUH soal yang ada di Bank Soal? Semua soal bawaan dan data soal lainnya akan dihapus.'
+    );
+    if (confirmed) {
+      await clearAllQuestions();
+      showToast('Seluruh bank soal berhasil dikosongkan!', 'success');
       loadData();
     }
   };
@@ -326,7 +339,17 @@ export const QuestionBank: React.FC = () => {
         </div>
 
         {/* View mode toggle & expand controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {questions.length > 0 && (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={handleClearAllQuestions}
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+            >
+              Kosongkan Semua Bank Soal
+            </Button>
+          )}
           {viewMode === 'FOLDER' && (
             <div className="flex items-center gap-1">
               <Button size="sm" variant="outline" onClick={() => toggleAllFolders(true)}>
