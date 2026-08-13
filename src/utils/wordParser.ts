@@ -281,6 +281,7 @@ function cleanRawText(text: string): string {
 function parseFromHtmlTables(tables: HTMLTableElement[]): Partial<Question>[] {
   const allQuestions: Partial<Question>[] = [];
 
+  // 1. Check if any table is multi-column horizontal layout
   for (const table of tables) {
     const rows = Array.from(table.querySelectorAll('tr')) as HTMLElement[];
     if (rows.length === 0) continue;
@@ -288,16 +289,23 @@ function parseFromHtmlTables(tables: HTMLTableElement[]): Partial<Question>[] {
     const multiColQuestions = parseMultiColumnTable(rows);
     if (multiColQuestions.length > 0) {
       allQuestions.push(...multiColQuestions);
-      continue;
-    }
-
-    const verticalQuestions = parseVerticalCbtTable(rows);
-    if (verticalQuestions.length > 0) {
-      allQuestions.push(...verticalQuestions);
     }
   }
+  if (allQuestions.length > 0) return allQuestions;
 
-  return allQuestions;
+  // 2. Flatten ALL table rows sequentially to handle Word page breaks or table splits seamlessly
+  const allRows: HTMLElement[] = [];
+  for (const table of tables) {
+    const rows = Array.from(table.querySelectorAll('tr')) as HTMLElement[];
+    allRows.push(...rows);
+  }
+
+  const verticalQuestions = parseVerticalCbtTable(allRows);
+  if (verticalQuestions.length > 0) {
+    return verticalQuestions;
+  }
+
+  return [];
 }
 
 /**
@@ -421,6 +429,20 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     kunciText = '';
   };
 
+  const ensureCurrentQ = () => {
+    if (!currentQ) {
+      currentQ = {
+        type: 'pilihan_ganda',
+        category: 'Literasi',
+        cognitiveLevel: 'Aplikasi (L2)',
+        difficulty: 'Sedang',
+        weight: 10,
+        questionText: '',
+        createdAt: new Date().toISOString(),
+      };
+    }
+  };
+
   rows.forEach((row) => {
     const cells = Array.from(row.querySelectorAll('td, th')).map((c) => (c.textContent || '').trim());
     if (cells.length < 1) return;
@@ -432,6 +454,14 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     const numMatch =
       col1Clean.match(/^(?:SOAL|NO|NOMOR|QUESTION|PERTANYAAN)?\s*(?:NO|NOMOR|\.)?\s*(\d+)$/i) ||
       col1Raw.trim().match(/^(?:SOAL|NO|NOMOR|QUESTION|PERTANYAAN)?\s*(\d+)[\.\:\)]?$/i);
+
+    const isSoalHeader =
+      numMatch ||
+      col1Clean === 'SOAL' ||
+      col1Clean === 'PERTANYAAN' ||
+      col1Clean === 'QUESTION' ||
+      col1Clean === 'NO' ||
+      col1Clean === 'NOMOR';
 
     const optMatch = col1Clean.match(/^[\*\(\[\>]*\s*(?:PIL|PILIHAN|OPSI)?\s*([A-Ea-e])[\.\:\)\]]*$/i);
 
@@ -450,18 +480,17 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     const isKategori = col1Clean.includes('KATEGORI') || col1Clean.includes('AKM');
     const isBobot = col1Clean.includes('BOBOT') || col1Clean.includes('NILAI');
 
-    if (numMatch) {
-      finalizeCurrentQ();
-      currentQ = {
-        type: 'pilihan_ganda',
-        category: 'Literasi',
-        cognitiveLevel: 'Aplikasi (L2)',
-        difficulty: 'Sedang',
-        weight: 10,
-        questionText: col2Raw,
-        createdAt: new Date().toISOString(),
-      };
-    } else if (optMatch && currentQ) {
+    if (isSoalHeader) {
+      // If currentQ already has question text or options, this is a NEW question
+      if (currentQ && (currentQ.questionText || rawOptions.length > 0)) {
+        finalizeCurrentQ();
+      }
+      ensureCurrentQ();
+      if (col2Raw && col2Raw.toUpperCase() !== 'SOAL') {
+        currentQ.questionText = col2Raw;
+      }
+    } else if (optMatch) {
+      ensureCurrentQ();
       let optText = cells.length > 1 ? cells.slice(1).join(' ').trim() : col2Raw;
       let isCorrect = false;
 
@@ -482,13 +511,17 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
         text: optText,
         isCorrect,
       });
-    } else if (isKunci && currentQ) {
+    } else if (isKunci) {
+      ensureCurrentQ();
       kunciText = col2Raw;
-    } else if (isPembahasan && currentQ) {
+    } else if (isPembahasan) {
+      ensureCurrentQ();
       currentQ.discussion = col2Raw;
-    } else if (isStimulus && currentQ) {
+    } else if (isStimulus) {
+      ensureCurrentQ();
       currentQ.stimulus = { type: 'text', content: col2Raw };
-    } else if (isTipe && currentQ) {
+    } else if (isTipe) {
+      ensureCurrentQ();
       const typeStr = col2Raw.toLowerCase();
       if (typeStr.includes('kompleks')) currentQ.type = 'pg_kompleks';
       else if (typeStr.includes('benar') || typeStr.includes('salah')) currentQ.type = 'benar_salah';
@@ -498,16 +531,19 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
       else if (typeStr.includes('uraian')) currentQ.type = 'uraian_pendek';
       else if (typeStr.includes('angka')) currentQ.type = 'isian_angka';
       else if (typeStr.includes('urut')) currentQ.type = 'mengurutkan';
-    } else if (isKategori && currentQ) {
+    } else if (isKategori) {
+      ensureCurrentQ();
       const catStr = col2Raw.toLowerCase();
       if (catStr.includes('num')) currentQ.category = 'Numerasi';
       else if (catStr.includes('sain')) currentQ.category = 'Sains';
       else if (catStr.includes('sosial')) currentQ.category = 'Sosial Budaya';
       else currentQ.category = 'Literasi';
-    } else if (isBobot && currentQ) {
+    } else if (isBobot) {
+      ensureCurrentQ();
       const weightVal = parseInt(col2Raw, 10);
       if (!isNaN(weightVal)) currentQ.weight = weightVal;
-    } else if (currentQ && col2Raw.trim() && !optMatch && !isKunci && !isPembahasan && !isStimulus) {
+    } else if (col2Raw.trim() && !optMatch && !isKunci && !isPembahasan && !isStimulus) {
+      ensureCurrentQ();
       if (!currentQ.questionText) {
         currentQ.questionText = col2Raw;
       } else if (rawOptions.length === 0) {
