@@ -687,7 +687,7 @@ export function downloadWordTemplate() {
 <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head>
 <meta charset="utf-8">
-<title>TEMPLATE SOAL TKA & CBT WORD MACRO</title>
+<title>TEMPLATE SOAL TKA &amp; CBT WORD MACRO</title>
 <style>
   body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; color: #000; }
   .title-header { font-size: 16pt; font-weight: bold; margin-bottom: 12px; color: #1e3a8a; text-transform: uppercase; }
@@ -701,7 +701,7 @@ export function downloadWordTemplate() {
 </head>
 <body>
 
-<div class="title-header">TEMPLATE SOAL TKA & CBT WORD MACRO STANDARD</div>
+<div class="title-header">TEMPLATE SOAL TKA &amp; CBT WORD MACRO STANDARD</div>
 
 <div class="info-box">
   <b style="font-size: 11pt; color: #1e3a8a;">PETUNJUK FORMAT TEMPLATE SOAL TKA WORD:</b><br/><br/>
@@ -710,7 +710,7 @@ export function downloadWordTemplate() {
   3. <b>Kolom Kanan</b>: Berisi Teks Pertanyaan, Teks Pilihan/Pernyataan, Nilai Kunci Jawaban, dan Pembahasan.<br/>
   4. <b>Dukungan Tipe Soal</b>:<br/>
      - <b>Pilihan Ganda</b>: <code>KUNCI</code> diisi 1 huruf pilihan (contoh: <code>B</code>).<br/>
-     - <b>Pilihan Ganda Kompleks</b>: <code>TIPE</code> diisi <code>Pilihan Ganda Kompleks</code>, <code>KUNCI</code> diisi huruf terpisah koma (contoh: <code>A, C</code>).<br/>
+     - <b>Pilihan Ganda Kompleks</b>: <code>TIPE</code> diisi <code>Pilihan Ganda Kompleks</code>, <code>KUNCI</code> diisi huruf terpisah koma (contoh: <code>A, C, D</code>).<br/>
      - <b>Benar Salah</b>: <code>TIPE</code> diisi <code>Benar Salah</code>, <code>KUNCI</code> diisi status per baris (contoh: <code>BENAR, SALAH, BENAR</code> atau <code>B, S, B</code>).<br/>
      - <b>Menjodohkan</b>: <code>TIPE</code> diisi <code>Menjodohkan</code>, baris pilihan berisi <code>Teks Kiri = Teks Kanan</code>.<br/>
      - <b>Isian Singkat</b>: <code>TIPE</code> diisi <code>Isian Singkat</code>, <code>KUNCI</code> diisi teks jawaban singkat.<br/>
@@ -720,35 +720,40 @@ export function downloadWordTemplate() {
 <table>
   <tr>
     <td class="col-no">1.</td>
-    <td class="col-text">Diketahui fungsi f(x) = 2x + 5. Nilai dari f(3) adalah...</td>
+    <td class="col-text">
+      <b>UNTUK SOAL 1 - 5</b><br/>
+      <b>Literasi Digital bagi Pelajar</b><br/>
+      Perkembangan teknologi digital memberikan kemudahan bagi pelajar dalam memperoleh informasi. Melalui internet, siswa dapat mengakses buku elektronik, video pembelajaran, dan berbagai sumber pengetahuan lainnya. Namun, kemudahan tersebut harus diimbangi dengan kemampuan memilih informasi yang benar. Tidak semua informasi di internet dapat dipercaya. Oleh karena itu, pelajar perlu memeriksa sumber, membandingkan informasi, dan memastikan kebenaran berita sebelum menyebarkannya. Sikap kritis dalam menggunakan teknologi dapat membantu pelajar terhindar dari informasi palsu.<br/><br/>
+      <i>Apa gagasan utama paragraf tersebut?</i>
+    </td>
   </tr>
   <tr>
     <td class="col-no">KATEGORI</td>
-    <td class="col-text">Numerasi</td>
+    <td class="col-text">Literasi</td>
   </tr>
   <tr>
     <td class="col-no">BOBOT</td>
-    <td class="col-text">10</td>
+    <td class="col-text">20</td>
   </tr>
   <tr>
     <td class="col-no">A</td>
-    <td class="col-text">8</td>
+    <td class="col-text">Internet merupakan sumber informasi yang paling lengkap.</td>
   </tr>
   <tr>
     <td class="col-no">B</td>
-    <td class="col-text">11</td>
+    <td class="col-text">Pelajar harus menggunakan teknologi digital secara kritis dan bijak.</td>
   </tr>
   <tr>
     <td class="col-no">C</td>
-    <td class="col-text">13</td>
+    <td class="col-text">Buku elektronik lebih bermanfaat daripada buku cetak.</td>
   </tr>
   <tr>
     <td class="col-no">D</td>
-    <td class="col-text">15</td>
+    <td class="col-text">Semua informasi yang ada di internet dapat digunakan oleh pelajar.</td>
   </tr>
   <tr>
     <td class="col-no">E</td>
-    <td class="col-text">17</td>
+    <td class="col-text">Teknologi digital membuat pelajar lebih mudah menyebarkan berita.</td>
   </tr>
   <tr>
     <td class="col-no">KUNCI</td>
@@ -756,7 +761,7 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">PEMBAHASAN</td>
-    <td class="col-text">f(3) = 2(3) + 5 = 6 + 5 = 11.</td>
+    <td class="col-text">Gagasan utama adalah ide pokok yang menjadi dasar pembahasan dalam teks. Teks membahas manfaat teknologi digital sekaligus pentingnya menggunakan teknologi secara bijak. Pelajar tidak boleh langsung percaya terhadap semua informasi di internet, tetapi harus memeriksa dan membandingkan informasi terlebih dahulu. Jadi, jawaban yang tepat adalah B.</td>
   </tr>
 </table>
 
@@ -764,7 +769,7 @@ export function downloadWordTemplate() {
 <table>
   <tr>
     <td class="col-no">2.</td>
-    <td class="col-text">Diketahui fungsi kuadrat f(x) = x<sup>2</sup> - 5x + 6. Pilih semua pernyataan yang benar di bawah ini!</td>
+    <td class="col-text">Pilihlah semua pernyataan yang sesuai dengan isi teks!</td>
   </tr>
   <tr>
     <td class="col-no">TIPE</td>
@@ -772,35 +777,39 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">KATEGORI</td>
-    <td class="col-text">Numerasi</td>
+    <td class="col-text">Literasi</td>
   </tr>
   <tr>
     <td class="col-no">BOBOT</td>
-    <td class="col-text">15</td>
+    <td class="col-text">20</td>
   </tr>
   <tr>
     <td class="col-no">A</td>
-    <td class="col-text">Grafik fungsi memotong sumbu-X di titik (2,0) dan (3,0).</td>
+    <td class="col-text">Internet memberikan kemudahan bagi pelajar dalam memperoleh informasi.</td>
   </tr>
   <tr>
     <td class="col-no">B</td>
-    <td class="col-text">Nilai minimum fungsi adalah -0.25.</td>
+    <td class="col-text">Semua informasi di internet dapat dipercaya.</td>
   </tr>
   <tr>
     <td class="col-no">C</td>
-    <td class="col-text">Grafik fungsi terbuka ke atas.</td>
+    <td class="col-text">Pelajar perlu memeriksa sumber informasi sebelum menyebarkannya.</td>
   </tr>
   <tr>
     <td class="col-no">D</td>
-    <td class="col-text">Sumbu simetri grafik terletak di x = 5.</td>
+    <td class="col-text">Membandingkan informasi dapat membantu memastikan kebenaran berita.</td>
+  </tr>
+  <tr>
+    <td class="col-no">E</td>
+    <td class="col-text">Sikap kritis tidak diperlukan dalam menggunakan teknologi digital.</td>
   </tr>
   <tr>
     <td class="col-no">KUNCI</td>
-    <td class="col-text">A, B, C</td>
+    <td class="col-text">A, C, D</td>
   </tr>
   <tr>
     <td class="col-no">PEMBAHASAN</td>
-    <td class="col-text">Pernyataan A, B, dan C benar. Pernyataan D salah karena sumbu simetri adalah x = 2.5.</td>
+    <td class="col-text">A benar: Pada kalimat pertama disebutkan bahwa teknologi digital memberikan kemudahan bagi pelajar dalam memperoleh informasi.<br/>B salah: Teks secara jelas menyatakan bahwa tidak semua informasi di internet dapat dipercaya.<br/>C benar: Pelajar dianjurkan memeriksa sumber sebelum menyebarkan informasi.<br/>D benar: Teks menyebutkan bahwa pelajar perlu membandingkan informasi untuk memastikan kebenarannya.<br/>E salah: Justru sikap kritis diperlukan agar pelajar dapat terhindar dari informasi palsu.<br/>Jadi, jawaban yang benar adalah A, C, dan D.</td>
   </tr>
 </table>
 
@@ -808,7 +817,7 @@ export function downloadWordTemplate() {
 <table>
   <tr>
     <td class="col-no">3.</td>
-    <td class="col-text">Tentukan kebenaran dari setiap pernyataan mengenai keanekaragaman hayati Indonesia berikut!</td>
+    <td class="col-text">Tentukan apakah pernyataan berikut benar atau salah berdasarkan teks!</td>
   </tr>
   <tr>
     <td class="col-no">TIPE</td>
@@ -820,27 +829,35 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">BOBOT</td>
-    <td class="col-text">15</td>
+    <td class="col-text">20</td>
   </tr>
   <tr>
     <td class="col-no">A</td>
-    <td class="col-text">Ketahanan pangan nasional sebaiknya bertumpu pada satu jenis pangan pokok saja.</td>
+    <td class="col-text">Perkembangan teknologi digital memudahkan pelajar memperoleh informasi.</td>
   </tr>
   <tr>
     <td class="col-no">B</td>
-    <td class="col-text">Sagu di Papua dan jagung di Madura merupakan contoh sumber karbohidrat lokal.</td>
+    <td class="col-text">Semua informasi yang terdapat di internet dapat dipercaya.</td>
   </tr>
   <tr>
     <td class="col-no">C</td>
-    <td class="col-text">Pengembangan pangan lokal dapat melestarikan kekayaan hayati Nusantara.</td>
+    <td class="col-text">Pelajar perlu membandingkan informasi sebelum menyebarkannya.</td>
+  </tr>
+  <tr>
+    <td class="col-no">D</td>
+    <td class="col-text">Sikap kritis dapat membantu pelajar terhindar dari informasi palsu.</td>
+  </tr>
+  <tr>
+    <td class="col-no">E</td>
+    <td class="col-text">Pelajar tidak perlu memeriksa sumber berita yang diperoleh dari internet.</td>
   </tr>
   <tr>
     <td class="col-no">KUNCI</td>
-    <td class="col-text">SALAH, BENAR, BENAR</td>
+    <td class="col-text">BENAR, SALAH, BENAR, BENAR, SALAH</td>
   </tr>
   <tr>
     <td class="col-no">PEMBAHASAN</td>
-    <td class="col-text">Pernyataan A salah (harus beragam). Pernyataan B dan C benar.</td>
+    <td class="col-text">1. Benar: Sesuai dengan kalimat awal teks bahwa teknologi digital memberikan kemudahan dalam memperoleh informasi.<br/>2. Salah: Teks menyatakan bahwa tidak semua informasi di internet dapat dipercaya.<br/>3. Benar: Pelajar perlu membandingkan informasi sebelum memastikan dan menyebarkannya.<br/>4. Benar: Sikap kritis membantu pelajar terhindar dari informasi palsu.<br/>5. Salah: Justru pelajar perlu memeriksa sumber sebelum menyebarkan berita.</td>
   </tr>
 </table>
 
@@ -848,7 +865,7 @@ export function downloadWordTemplate() {
 <table>
   <tr>
     <td class="col-no">4.</td>
-    <td class="col-text">Jodohkanlah cabang ilmu geografi di sebelah kiri dengan objek kajiannya yang tepat di sebelah kanan!</td>
+    <td class="col-text">Jodohkan pernyataan pada kolom A dengan jawaban yang tepat pada kolom B!</td>
   </tr>
   <tr>
     <td class="col-no">TIPE</td>
@@ -856,7 +873,7 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">KATEGORI</td>
-    <td class="col-text">Sains</td>
+    <td class="col-text">Literasi</td>
   </tr>
   <tr>
     <td class="col-no">BOBOT</td>
@@ -864,51 +881,23 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">A</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari iklim = Klimatologi</td>
+    <td class="col-text">Membimbing siswa memilih informasi = Manfaat teknologi digital bagi siswa</td>
   </tr>
   <tr>
     <td class="col-no">B</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari cuaca = Meteorologi</td>
+    <td class="col-text">Mengakses sumber belajar dengan cepat = Dampak positif akses internet</td>
   </tr>
   <tr>
     <td class="col-no">C</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari bentuk muka bumi = Geomorfologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">D</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari perairan di darat = Hidrologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">E</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari perairan laut = Oceanografi</td>
-  </tr>
-  <tr>
-    <td class="col-no">F</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari peta dan pemetaan = Kartografi</td>
-  </tr>
-  <tr>
-    <td class="col-no">G</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari tanah = Pedologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">H</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari manusia = Antropologi</td>
-  </tr>
-  <tr>
-    <td class="col-no">I</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari batuan-batuan bernilai tinggi = Mineralogi</td>
-  </tr>
-  <tr>
-    <td class="col-no">J</td>
-    <td class="col-text">Cabang ilmu geografi yang mempelajari struktur lapisan bumi = Geologi</td>
+    <td class="col-text">Ketergantungan pada internet = Hal yang perlu dikontrol dalam penggunaan</td>
   </tr>
   <tr>
     <td class="col-no">KUNCI</td>
-    <td class="col-text">1-F, 2-G, 3-C, 4-D, 5-I, 6-E, 7-J, 8-A, 9-H, 10-B</td>
+    <td class="col-text">1-D, 2-C, 3-B, 4-E, 5-A</td>
   </tr>
   <tr>
     <td class="col-no">PEMBAHASAN</td>
-    <td class="col-text">Setiap cabang ilmu geografi dan objek kajiannya terhubung dengan garis yang tepat.</td>
+    <td class="col-text">Pasangan pernyataan dan jawabannya sudah tepat sesuai isi teks bacaan.</td>
   </tr>
 </table>
 
@@ -916,7 +905,7 @@ export function downloadWordTemplate() {
 <table>
   <tr>
     <td class="col-no">5.</td>
-    <td class="col-text">Siapakah tokoh Indonesia yang mengemukakan Tiga Semboyan Pendidikan (Ing Ngarsa Sung Tuladha, Ing Madya Mangun Karsa, Tut Wuri Handayani)?</td>
+    <td class="col-text">Lengkapilah kalimat berikut berdasarkan teks!<br/>Pelajar perlu memeriksa sumber, membandingkan informasi, dan memastikan ________ berita sebelum menyebarkannya.</td>
   </tr>
   <tr>
     <td class="col-no">TIPE</td>
@@ -928,15 +917,15 @@ export function downloadWordTemplate() {
   </tr>
   <tr>
     <td class="col-no">BOBOT</td>
-    <td class="col-text">10</td>
+    <td class="col-text">20</td>
   </tr>
   <tr>
     <td class="col-no">KUNCI</td>
-    <td class="col-text">Ki Hajar Dewantara</td>
+    <td class="col-text">kebenaran</td>
   </tr>
   <tr>
     <td class="col-no">PEMBAHASAN</td>
-    <td class="col-text">Ki Hajar Dewantara adalah pencetus semboyan pendidikan Indonesia.</td>
+    <td class="col-text">Kalimat tersebut terdapat dalam teks: "Pelajar perlu memeriksa sumber, membandingkan informasi, dan memastikan kebenaran berita sebelum menyebarkannya." Kata yang tepat untuk melengkapi kalimat adalah kebenaran, karena pelajar harus memastikan bahwa berita yang akan disebarkan benar dan dapat dipercaya.</td>
   </tr>
 </table>
 
@@ -950,7 +939,7 @@ export function downloadWordTemplate() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'Template_Soal_Word_Macro_CBT.doc';
+  a.download = 'Template_Soal_BAHASA_INDONESIA_1_Word_Macro_CBT.doc';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
