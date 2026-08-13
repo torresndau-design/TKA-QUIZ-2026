@@ -30,8 +30,8 @@ function processFinalQuestion(
     text: cleanHtmlContent(opt.text),
   }));
 
-  // Auto-detect type if not explicitly set or if still default pilihan_ganda
-  if (!q.type || q.type === 'pilihan_ganda') {
+  // Auto-detect type if not explicitly set by user tag
+  if (!(q as any).isTypeExplicit) {
     if (
       upperKunci.includes('BENAR') ||
       upperKunci.includes('SALAH') ||
@@ -45,14 +45,15 @@ function processFinalQuestion(
     ) {
       q.type = 'setuju_tidak_setuju';
     } else if (
-      /^(?:[A-E1-5]\s*[\-\:\=\>]\s*[A-E1-5]|(?:[A-E]\-[1-5]))/i.test(cleanKunci) ||
-      rawOptions.some((o) => /[\=\-\>\|\:]/.test(o.text))
+      /^(?:[A-E1-9]\s*[\-\:\=\>]+\s*[A-E1-9])(?:\s*[\,\;\s]\s*[A-E1-9]\s*[\-\:\=\>]+\s*[A-E1-9])*$/i.test(cleanKunci)
     ) {
       q.type = 'menjodohkan';
     } else if (cleanKunci.split(/[\,\;\s\+]+/).filter((x) => /^[A-E]$/i.test(x)).length > 1) {
       q.type = 'pg_kompleks';
     } else if (rawOptions.length === 0 && cleanKunci.length > 0) {
       q.type = 'isian_singkat';
+    } else {
+      q.type = q.type || 'pilihan_ganda';
     }
   }
 
@@ -539,6 +540,14 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
       col1Clean.includes('PENJELASAN');
     const isStimulus =
       col1Clean.includes('STIMULUS') || col1Clean.includes('TEKS') || col1Clean.includes('BACAAN');
+    const isStimulusGambar =
+      col1Clean.includes('STIMULUS_GAMBAR') || col1Clean.includes('GAMBAR_STIMULUS') || col1Clean.includes('IMAGE_STIMULUS');
+    const isStimulusAudio =
+      col1Clean.includes('STIMULUS_AUDIO') || col1Clean.includes('AUDIO_STIMULUS') || col1Clean.includes('SOUND_STIMULUS');
+    const isAudio =
+      col1Clean.includes('AUDIO') || col1Clean.includes('SUARA') || col1Clean.includes('SOUND');
+    const isGambar =
+      col1Clean.includes('GAMBAR') || col1Clean.includes('FOTO') || col1Clean.includes('IMAGE');
     const isTipe = col1Clean.includes('TIPE') || col1Clean.includes('JENIS');
     const isKategori = col1Clean.includes('KATEGORI') || col1Clean.includes('AKM');
     const isBobot = col1Clean.includes('BOBOT') || col1Clean.includes('NILAI');
@@ -581,13 +590,45 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     } else if (isPembahasan) {
       ensureCurrentQ();
       currentQ.discussion = col2Raw;
+    } else if (isStimulusGambar) {
+      ensureCurrentQ();
+      // Extract img src if embedded in cell, or use URL/text
+      const imgInCell = rawCells.length > 1 ? rawCells[1].querySelector('img') : rawCells[0]?.querySelector('img');
+      const imgSrc = imgInCell ? imgInCell.getAttribute('src') || '' : col2Raw;
+      currentQ.stimulus = { type: 'image', content: imgSrc };
+    } else if (isStimulusAudio) {
+      ensureCurrentQ();
+      const audioInCell = rawCells.length > 1 ? rawCells[1].querySelector('audio source, audio') : rawCells[0]?.querySelector('audio source, audio');
+      const audioSrc = audioInCell ? audioInCell.getAttribute('src') || '' : col2Raw;
+      currentQ.stimulus = { type: 'audio', content: audioSrc };
+    } else if (isAudio) {
+      ensureCurrentQ();
+      const audioInCell = rawCells.length > 1 ? rawCells[1].querySelector('audio source, audio') : rawCells[0]?.querySelector('audio source, audio');
+      const audioSrc = audioInCell ? audioInCell.getAttribute('src') || '' : col2Raw;
+      currentQ.stimulus = { type: 'audio', content: audioSrc };
+      currentQ.type = 'pilihan_audio';
+    } else if (isGambar && !isStimulusGambar) {
+      ensureCurrentQ();
+      const imgInCell = rawCells.length > 1 ? rawCells[1].querySelector('img') : rawCells[0]?.querySelector('img');
+      const imgSrc = imgInCell ? imgInCell.getAttribute('src') || '' : col2Raw;
+      if (currentQ.type !== 'pilihan_gambar') {
+        currentQ.stimulus = { type: 'image', content: imgSrc };
+      }
     } else if (isStimulus) {
       ensureCurrentQ();
-      currentQ.stimulus = { type: 'text', content: col2Raw };
+      // Check if stimulus cell contains embedded <img> tag
+      const imgInCell = rawCells.length > 1 ? rawCells[1].querySelector('img') : rawCells[0]?.querySelector('img');
+      if (imgInCell && imgInCell.getAttribute('src')) {
+        currentQ.stimulus = { type: 'image', content: imgInCell.getAttribute('src') || '' };
+      } else {
+        currentQ.stimulus = { type: 'text', content: col2Raw };
+      }
     } else if (isTipe) {
       ensureCurrentQ();
       const typeStr = col2Raw.toLowerCase();
       if (typeStr.includes('kompleks')) currentQ.type = 'pg_kompleks';
+      else if (typeStr.includes('audio') || typeStr.includes('suara')) currentQ.type = 'pilihan_audio';
+      else if (typeStr.includes('gambar') || typeStr.includes('foto')) currentQ.type = 'pilihan_gambar';
       else if (typeStr.includes('benar') || typeStr.includes('salah')) currentQ.type = 'benar_salah';
       else if (typeStr.includes('setuju')) currentQ.type = 'setuju_tidak_setuju';
       else if (typeStr.includes('jodoh')) currentQ.type = 'menjodohkan';
@@ -595,6 +636,9 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
       else if (typeStr.includes('uraian')) currentQ.type = 'uraian_pendek';
       else if (typeStr.includes('angka')) currentQ.type = 'isian_angka';
       else if (typeStr.includes('urut')) currentQ.type = 'mengurutkan';
+      else currentQ.type = 'pilihan_ganda';
+
+      (currentQ as any).isTypeExplicit = true;
     } else if (isKategori) {
       ensureCurrentQ();
       const catStr = col2Raw.toLowerCase();
@@ -768,12 +812,14 @@ export function downloadWordTemplate() {
 <div class="title-header">TEMPLATE SOAL TKA &amp; CBT WORD MACRO STANDARD</div>
 
 <div class="info-box">
-  <b style="font-size: 11pt; color: #1e3a8a;">PETUNJUK FORMAT TEMPLATE SOAL TKA WORD:</b><br/><br/>
+  <b style="font-size: 11pt; color: #1e3a8a;">PETUNJUK FORMAT TEMPLATE SOAL TKA WORD (SUPPORT GAMBAR &amp; AUDIO):</b><br/><br/>
   1. <b>Format Tabel</b>: Setiap soal ditulis dalam bentuk <b>Tabel 2 Kolom Continuous</b>.<br/>
-  2. <b>Kolom Kiri</b>: Berisi Nomor Soal (<code>1.</code>, <code>2.</code>, dst), Huruf Pilihan (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>E</code>), atau Tag Metadata (<code>TIPE</code>, <code>KATEGORI</code>, <code>BOBOT</code>, <code>STIMULUS</code>, <code>KUNCI</code>, <code>PEMBAHASAN</code>).<br/>
-  3. <b>Kolom Kanan</b>: Berisi Teks Pertanyaan, Teks Pilihan/Pernyataan, Nilai Kunci Jawaban, dan Pembahasan.<br/>
-  4. <b>Dukungan Tipe Soal</b>:<br/>
-     - <b>Pilihan Ganda</b>: <code>KUNCI</code> diisi 1 huruf pilihan (contoh: <code>B</code>).<br/>
+  2. <b>Kolom Kiri</b>: Berisi Nomor Soal (<code>1.</code>, <code>2.</code>, dst), Huruf Pilihan (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>E</code>), atau Tag Metadata (<code>TIPE</code>, <code>KATEGORI</code>, <code>BOBOT</code>, <code>STIMULUS</code>, <code>STIMULUS_GAMBAR</code>, <code>STIMULUS_AUDIO</code>, <code>KUNCI</code>, <code>PEMBAHASAN</code>).<br/>
+  3. <b>Dukungan Media Gambar &amp; Audio</b>:<br/>
+     - <b>Gambar pada Soal / Opsi</b>: Sisipkan/Insert gambar langsung ke dalam sel tabel Word <i>ATAU</i> tulis tag <code>STIMULUS_GAMBAR</code> dengan isi URL/Link gambar.<br/>
+     - <b>Audio Listening / MP3</b>: Tulis tag <code>STIMULUS_AUDIO</code> dengan isi URL audio (contoh: <code>https://example.com/audio.mp3</code>) <i>ATAU</i> set <code>TIPE</code> = <code>Pilihan Audio</code>.<br/>
+  4. <b>Dukungan Tipe Soal AKM</b>:<br/>
+     - <b>Pilihan Ganda</b>: <code>KUNCI</code> diisi 1 huruf (contoh: <code>B</code>).<br/>
      - <b>Pilihan Ganda Kompleks</b>: <code>TIPE</code> diisi <code>Pilihan Ganda Kompleks</code>, <code>KUNCI</code> diisi huruf terpisah koma (contoh: <code>A, C, D</code>).<br/>
      - <b>Benar Salah</b>: <code>TIPE</code> diisi <code>Benar Salah</code>, <code>KUNCI</code> diisi status per baris (contoh: <code>BENAR, SALAH, BENAR</code> atau <code>B, S, B</code>).<br/>
      - <b>Menjodohkan</b>: <code>TIPE</code> diisi <code>Menjodohkan</code>, baris pilihan berisi <code>Teks Kiri = Teks Kanan</code>.<br/>
@@ -990,6 +1036,98 @@ export function downloadWordTemplate() {
   <tr>
     <td class="col-no">PEMBAHASAN</td>
     <td class="col-text">Kalimat tersebut terdapat dalam teks: "Pelajar perlu memeriksa sumber, membandingkan informasi, dan memastikan kebenaran berita sebelum menyebarkannya." Kata yang tepat untuk melengkapi kalimat adalah kebenaran, karena pelajar harus memastikan bahwa berita yang akan disebarkan benar dan dapat dipercaya.</td>
+  </tr>
+</table>
+
+<div class="section-tag">CONTOH 6: SOAL DENGAN STIMULUS GAMBAR</div>
+<table>
+  <tr>
+    <td class="col-no">6.</td>
+    <td class="col-text">Berdasarkan diagram/gambar di bawah, komponen utama yang berfungsi mengolah data adalah?</td>
+  </tr>
+  <tr>
+    <td class="col-no">STIMULUS_GAMBAR</td>
+    <td class="col-text">https://images.unsplash.com/photo-1518770660439-4636190af475?w=500</td>
+  </tr>
+  <tr>
+    <td class="col-no">KATEGORI</td>
+    <td class="col-text">Sains</td>
+  </tr>
+  <tr>
+    <td class="col-no">BOBOT</td>
+    <td class="col-text">20</td>
+  </tr>
+  <tr>
+    <td class="col-no">A</td>
+    <td class="col-text">Central Processing Unit (CPU)</td>
+  </tr>
+  <tr>
+    <td class="col-no">B</td>
+    <td class="col-text">Random Access Memory (RAM)</td>
+  </tr>
+  <tr>
+    <td class="col-no">C</td>
+    <td class="col-text">Hard Disk Drive (HDD)</td>
+  </tr>
+  <tr>
+    <td class="col-no">D</td>
+    <td class="col-text">Power Supply Unit (PSU)</td>
+  </tr>
+  <tr>
+    <td class="col-no">KUNCI</td>
+    <td class="col-text">A</td>
+  </tr>
+  <tr>
+    <td class="col-no">PEMBAHASAN</td>
+    <td class="col-text">CPU adalah pemroses utama dalam sistem komputer. Catatan: Gambar juga dapat langsung di-Insert ke dalam sel Word.</td>
+  </tr>
+</table>
+
+<div class="section-tag">CONTOH 7: SOAL LISTENING (STIMULUS AUDIO)</div>
+<table>
+  <tr>
+    <td class="col-no">7.</td>
+    <td class="col-text">Dengarkan petikan percakapan audio di bawah ini. Apakah topik utama percakapan tersebut?</td>
+  </tr>
+  <tr>
+    <td class="col-no">STIMULUS_AUDIO</td>
+    <td class="col-text">https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg</td>
+  </tr>
+  <tr>
+    <td class="col-no">TIPE</td>
+    <td class="col-text">Pilihan Audio</td>
+  </tr>
+  <tr>
+    <td class="col-no">KATEGORI</td>
+    <td class="col-text">Literasi</td>
+  </tr>
+  <tr>
+    <td class="col-no">BOBOT</td>
+    <td class="col-text">20</td>
+  </tr>
+  <tr>
+    <td class="col-no">A</td>
+    <td class="col-text">Kondisi cuaca hujan deras</td>
+  </tr>
+  <tr>
+    <td class="col-no">B</td>
+    <td class="col-text">Suara lalu lintas di kota</td>
+  </tr>
+  <tr>
+    <td class="col-no">C</td>
+    <td class="col-text">Suara ombak di pantai</td>
+  </tr>
+  <tr>
+    <td class="col-no">D</td>
+    <td class="col-text">Persiapan kegiatan outdoor</td>
+  </tr>
+  <tr>
+    <td class="col-no">KUNCI</td>
+    <td class="col-text">A</td>
+  </tr>
+  <tr>
+    <td class="col-no">PEMBAHASAN</td>
+    <td class="col-text">Audio di atas berisi rekaman suara suasana hujan deras. Jawaban yang tepat adalah A.</td>
   </tr>
 </table>
 

@@ -12,43 +12,77 @@ export function cleanHtmlContent(raw?: string): string {
   if (!raw) return '';
 
   let cleaned = String(raw).trim();
+  if (!cleaned) return '';
 
-  // 1. Decode double-escaped or entity-encoded HTML strings first (e.g. &quot;, &#39;, &lt;, &gt;, &amp;)
-  cleaned = cleaned
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&');
+  // 1. Decode double-escaped HTML entities if the string was entity-encoded (e.g. &lt;p&gt;)
+  if (cleaned.includes('&lt;') && cleaned.includes('&gt;') && !cleaned.includes('<p>') && !cleaned.includes('<div>')) {
+    cleaned = cleaned
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+  }
 
-  // 2. Remove Microsoft Word / Office specific comments & XML tags
+// 2. Convert MS Word / VML image tags (<v:imagedata src="...">) to standard <img> before stripping Word XML
+  cleaned = cleaned.replace(/<v:imagedata\s+[^>]*src=["']([^"']+)["'][^>]*\/?>/gi, '<img src="$1" />');
+  cleaned = cleaned.replace(/<!--\[if\s+gte\s+vml\s+1\]>[\s\S]*?<v:imagedata\s+[^>]*src=["']([^"']+)["'][^>]*\/?>[\s\S]*?<!\[endif\]-->/gi, '<img src="$1" />');
+
+  // 3. Remove Microsoft Word / Office specific comments & XML tags
   cleaned = cleaned.replace(/<!--[\s\S]*?-->/gi, '');
-  cleaned = cleaned.replace(/<\/?o:[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<\/?v:[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<\/?w:[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<\/?m:[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<\/?st1:[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<\/?(?:o|v|w|m|st1):[^>]*>/gi, '');
 
-  // 3. Remove all MS Word classes (MsoNormal, SpellE, etc.) and inline style attributes completely
-  cleaned = cleaned.replace(/\s*class=["'][^"']*["']/gi, '');
-  cleaned = cleaned.replace(/\s*style=["'][^"']*["']/gi, '');
+  // 4. Use DOMParser to safely sanitize attributes, strip inline styles, remove Word Mso classes, and unwrap useless spans
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${cleaned}</div>`, 'text/html');
+    const container = doc.body.firstElementChild || doc.body;
 
-  // 4. Clean <img> tags: Remove <img> if src is missing, empty, file://, cid:, local relative path without base64/http
-  cleaned = cleaned.replace(/<img\s+[^>]*>/gi, (imgTag) => {
-    const srcMatch = imgTag.match(/src=["']([^"']*)["']/i);
-    if (!srcMatch || !srcMatch[1]) return '';
-    const src = srcMatch[1].trim();
-    if (!src || src === 'undefined' || src === 'null') return '';
-    if (src.startsWith('file:') || src.startsWith('cid:') || src.startsWith('blob:')) return '';
-    // If src does not start with http://, https://, or data:image/, remove it
-    if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image/')) return '';
-    return imgTag;
-  });
+    // Remove style, class, lang attributes from elements except <img>
+    const allElements = container.querySelectorAll('*');
+    allElements.forEach((el) => {
+      el.removeAttribute('style');
+      el.removeAttribute('class');
+      el.removeAttribute('lang');
 
-  // 5. Remove empty/redundant tags like <p></p>, <span></span>, <b></b>
-  cleaned = cleaned.replace(/<(p|span|b|i|u|strong|em)\b[^>]*>\s*<\/\1>/gi, '');
+      // Process images
+      if (el.tagName.toLowerCase() === 'img') {
+        const src = (el.getAttribute('src') || '').trim();
+        if (
+          !src ||
+          src === 'undefined' ||
+          src === 'null' ||
+          src.startsWith('file:') ||
+          src.startsWith('cid:')
+        ) {
+          el.remove();
+        }
+      }
+    });
 
-  return cleaned.trim();
+    // Unwrap <span>, <font>, and <o:p> formatting wrapper tags from Word
+    const wrappers = container.querySelectorAll('span, font, o\\:p');
+    wrappers.forEach((wrapper) => {
+      while (wrapper.firstChild) {
+        wrapper.parentNode?.insertBefore(wrapper.firstChild, wrapper);
+      }
+      wrapper.parentNode?.removeChild(wrapper);
+    });
+
+    // Remove empty tags (like <p></p>, <b></b>, <i></i>) that contain no text and no images
+    const emptyCandidates = container.querySelectorAll('p, div, b, i, u, strong, em, h1, h2, h3, h4, h5, h6');
+    emptyCandidates.forEach((el) => {
+      if (!el.innerHTML.trim() && !el.querySelector('img')) {
+        el.remove();
+      }
+    });
+
+    cleaned = container.innerHTML.trim();
+  } catch (e) {
+    console.warn('DOMParser cleaning fallback:', e);
+  }
+
+  return cleaned;
 }
 
 export const RichText: React.FC<RichTextProps> = ({ content, className = '' }) => {
