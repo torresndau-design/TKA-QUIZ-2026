@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, X, Image as ImageIcon } from 'lucide-react';
+import { getCleanImageSrc } from './RichText';
 
 interface ImageZoomModalProps {
   src: string;
@@ -15,8 +16,11 @@ export const ImageZoomModal: React.FC<ImageZoomModalProps> = ({
   onClose,
 }) => {
   const [scale, setScale] = useState(1);
+  const [hasError, setHasError] = useState(false);
 
   if (!isOpen) return null;
+
+  const cleanSrc = getCleanImageSrc(src);
 
   const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.25, 0.75));
@@ -72,12 +76,23 @@ export const ImageZoomModal: React.FC<ImageZoomModalProps> = ({
         className="flex-1 w-full flex items-center justify-center overflow-auto p-4 cursor-grab"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={src}
-          alt={alt}
-          style={{ transform: `scale(${scale})`, transition: 'transform 0.15s ease-out' }}
-          className="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
-        />
+        {hasError || !cleanSrc ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-300 space-y-3">
+            <ImageIcon className="w-16 h-16 text-slate-500" />
+            <p className="text-sm font-semibold">Gambar tidak dapat dimuat atau Link/Path URL tidak valid.</p>
+            <p className="text-xs text-slate-400 max-w-md">
+              Pastikan gambar di-insert langsung ke dalam sel Word atau isi tag STIMULUS_GAMBAR dengan URL/link gambar publik yang dapat diakses (misal: https://...).
+            </p>
+          </div>
+        ) : (
+          <img
+            src={cleanSrc}
+            alt={alt}
+            onError={() => setHasError(true)}
+            style={{ transform: `scale(${scale})`, transition: 'transform 0.15s ease-out' }}
+            className="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
+          />
+        )}
       </div>
 
       <p className="text-xs text-slate-400 text-center z-10 mb-2">

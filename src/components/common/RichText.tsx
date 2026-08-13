@@ -6,6 +6,62 @@ interface RichTextProps {
 }
 
 /**
+ * Extracts a clean image URL or base64 data string from raw text or HTML content
+ */
+export function getCleanImageSrc(src?: string): string {
+  if (!src) return '';
+  let str = String(src).trim();
+  if (!str) return '';
+
+  // 1. Decode HTML entities if needed (e.g. &lt;p&gt; or &amp;)
+  if (str.includes('&lt;') && str.includes('&gt;')) {
+    str = str
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+  }
+
+  // 2. If str contains standard <img ... src="... ">
+  const imgTagMatch = str.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (imgTagMatch && imgTagMatch[1]) {
+    str = imgTagMatch[1].trim();
+  } else {
+    // 3. If str contains MS Word VML <v:imagedata ... src="...">
+    const vmlMatch = str.match(/<v:imagedata[^>]+src=["']([^"']+)["']/i);
+    if (vmlMatch && vmlMatch[1]) {
+      str = vmlMatch[1].trim();
+    }
+  }
+
+  // 4. Strip any outer HTML tags like <p>, </p>, <div>, </div>, <br>
+  str = str.replace(/<[^>]+>/g, '').trim();
+
+  // 5. Decode URL entity &amp;
+  str = str.replace(/&amp;/g, '&');
+
+  return str;
+}
+
+/**
+ * Extracts a clean audio/video URL string from raw text or HTML content
+ */
+export function getCleanMediaSrc(src?: string): string {
+  if (!src) return '';
+  let str = String(src).trim();
+  if (!str) return '';
+
+  const sourceMatch = str.match(/<source[^>]+src=["']([^"']+)["']/i) || str.match(/<(?:audio|video)[^>]+src=["']([^"']+)["']/i);
+  if (sourceMatch && sourceMatch[1]) {
+    str = sourceMatch[1].trim();
+  }
+
+  str = str.replace(/<[^>]+>/g, '').trim().replace(/&amp;/g, '&');
+  return str;
+}
+
+/**
  * Cleans raw HTML/Word strings to prevent MS Word bloat, unextracted local image paths, and raw HTML display
  */
 export function cleanHtmlContent(raw?: string): string {

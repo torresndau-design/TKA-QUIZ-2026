@@ -1,7 +1,37 @@
 import mammoth from 'mammoth';
 import { Question, QuestionType } from '../types';
 import { normalizeMatchingPairs } from './questionUtils';
-import { cleanHtmlContent } from '../components/common/RichText';
+import { cleanHtmlContent, getCleanImageSrc, getCleanMediaSrc } from '../components/common/RichText';
+
+/**
+ * Extract image source from cell DOM node or fallback string
+ */
+function extractImageSrcFromCell(cellNode: Element | null, fallbackRaw: string): string {
+  if (cellNode) {
+    const imgEl = cellNode.querySelector('img');
+    if (imgEl && imgEl.getAttribute('src')) {
+      return imgEl.getAttribute('src')!;
+    }
+    const vmlImg = cellNode.querySelector('v\\:imagedata, imagedata');
+    if (vmlImg && vmlImg.getAttribute('src')) {
+      return vmlImg.getAttribute('src')!;
+    }
+  }
+  return fallbackRaw;
+}
+
+/**
+ * Extract audio source from cell DOM node or fallback string
+ */
+function extractAudioSrcFromCell(cellNode: Element | null, fallbackRaw: string): string {
+  if (cellNode) {
+    const audioEl = cellNode.querySelector('audio source, audio');
+    if (audioEl && audioEl.getAttribute('src')) {
+      return audioEl.getAttribute('src')!;
+    }
+  }
+  return fallbackRaw;
+}
 
 /**
  * Helper to process and format a question based on its specified type or auto-detected type from KUNCI / options.
@@ -22,8 +52,14 @@ function processFinalQuestion(
   if (q.discussion) {
     q.discussion = cleanHtmlContent(q.discussion);
   }
-  if (q.stimulus?.content && q.stimulus.type === 'text') {
-    q.stimulus.content = cleanHtmlContent(q.stimulus.content);
+  if (q.stimulus?.content) {
+    if (q.stimulus.type === 'image') {
+      q.stimulus.content = getCleanImageSrc(q.stimulus.content);
+    } else if (q.stimulus.type === 'audio') {
+      q.stimulus.content = getCleanMediaSrc(q.stimulus.content);
+    } else if (q.stimulus.type === 'text') {
+      q.stimulus.content = cleanHtmlContent(q.stimulus.content);
+    }
   }
   rawOptions = rawOptions.map((opt) => ({
     ...opt,
@@ -592,34 +628,33 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
       currentQ.discussion = col2Raw;
     } else if (isStimulusGambar) {
       ensureCurrentQ();
-      // Extract img src if embedded in cell, or use URL/text
-      const imgInCell = rawCells.length > 1 ? rawCells[1].querySelector('img') : rawCells[0]?.querySelector('img');
-      const imgSrc = imgInCell ? imgInCell.getAttribute('src') || '' : col2Raw;
+      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
+      const imgSrc = getCleanImageSrc(extractImageSrcFromCell(cellNode, col2Raw));
       currentQ.stimulus = { type: 'image', content: imgSrc };
     } else if (isStimulusAudio) {
       ensureCurrentQ();
-      const audioInCell = rawCells.length > 1 ? rawCells[1].querySelector('audio source, audio') : rawCells[0]?.querySelector('audio source, audio');
-      const audioSrc = audioInCell ? audioInCell.getAttribute('src') || '' : col2Raw;
+      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
+      const audioSrc = getCleanMediaSrc(extractAudioSrcFromCell(cellNode, col2Raw));
       currentQ.stimulus = { type: 'audio', content: audioSrc };
     } else if (isAudio) {
       ensureCurrentQ();
-      const audioInCell = rawCells.length > 1 ? rawCells[1].querySelector('audio source, audio') : rawCells[0]?.querySelector('audio source, audio');
-      const audioSrc = audioInCell ? audioInCell.getAttribute('src') || '' : col2Raw;
+      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
+      const audioSrc = getCleanMediaSrc(extractAudioSrcFromCell(cellNode, col2Raw));
       currentQ.stimulus = { type: 'audio', content: audioSrc };
       currentQ.type = 'pilihan_audio';
     } else if (isGambar && !isStimulusGambar) {
       ensureCurrentQ();
-      const imgInCell = rawCells.length > 1 ? rawCells[1].querySelector('img') : rawCells[0]?.querySelector('img');
-      const imgSrc = imgInCell ? imgInCell.getAttribute('src') || '' : col2Raw;
+      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
+      const imgSrc = getCleanImageSrc(extractImageSrcFromCell(cellNode, col2Raw));
       if (currentQ.type !== 'pilihan_gambar') {
         currentQ.stimulus = { type: 'image', content: imgSrc };
       }
     } else if (isStimulus) {
       ensureCurrentQ();
-      // Check if stimulus cell contains embedded <img> tag
-      const imgInCell = rawCells.length > 1 ? rawCells[1].querySelector('img') : rawCells[0]?.querySelector('img');
-      if (imgInCell && imgInCell.getAttribute('src')) {
-        currentQ.stimulus = { type: 'image', content: imgInCell.getAttribute('src') || '' };
+      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
+      const imgSrc = extractImageSrcFromCell(cellNode, '');
+      if (imgSrc) {
+        currentQ.stimulus = { type: 'image', content: getCleanImageSrc(imgSrc) };
       } else {
         currentQ.stimulus = { type: 'text', content: col2Raw };
       }
