@@ -5,6 +5,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
+import { RichText } from '../../components/common/RichText';
 import { showToast, showConfirmDialog } from '../../components/common/Toast';
 import { QuestionItemEditor } from '../../components/questions/QuestionItemEditor';
 import { QuestionItemViewer } from '../../components/questions/QuestionItemViewer';
@@ -94,43 +95,56 @@ export const QuizEditor: React.FC = () => {
     load();
   }, [id]);
 
-  const handleSaveQuiz = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSaveQuiz = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
-
-    const matchedSubject = subjects.find((s) => s.id === subjectId);
-
-    const quizObj: Quiz = {
-      id: quizId,
-      title,
-      description,
-      subjectId,
-      subjectName: matchedSubject?.name || 'Mata Pelajaran',
-      targetClass,
-      teacherId: user.uid,
-      teacherName: user.name,
-      duration: Number(duration),
-      minPassingGrade: Number(minPassingGrade),
-      randomizeQuestions,
-      randomizeAnswers,
-      showGrade,
-      showDiscussion,
-      status,
-      token,
-      questionCount: questions.length,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await saveQuiz(quizObj);
-
-    // Save/Sync all questions associated with this quizId
-    for (const q of questions) {
-      await saveQuestion({ ...q, quizId });
+    if (!title.trim()) {
+      showToast('Judul Ujian/Kuis wajib diisi!', 'error');
+      return;
     }
 
-    showToast('Quiz dan soal berhasil disimpan!');
-    navigate('/guru/quizzes');
+    setSubmitting(true);
+    try {
+      const matchedSubject = subjects.find((s) => s.id === subjectId);
+
+      const quizObj: Quiz = {
+        id: quizId,
+        title: title.trim(),
+        description: description.trim(),
+        subjectId,
+        subjectName: matchedSubject?.name || 'Mata Pelajaran',
+        targetClass: targetClass.trim(),
+        teacherId: user.uid,
+        teacherName: user.name,
+        duration: Number(duration) || 60,
+        minPassingGrade: Number(minPassingGrade) || 75,
+        randomizeQuestions,
+        randomizeAnswers,
+        showGrade,
+        showDiscussion,
+        status,
+        token: token.trim().toUpperCase() || 'TKA2026',
+        questionCount: questions.length,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await saveQuiz(quizObj);
+
+      // Save/Sync all questions associated with this quizId
+      for (const q of questions) {
+        await saveQuestion({ ...q, quizId });
+      }
+
+      showToast('Ujian/Kuis dan seluruh soal berhasil disimpan!', 'success');
+      navigate('/guru/quizzes');
+    } catch (err: any) {
+      showToast('Gagal menyimpan ujian: ' + (err?.message || 'terjadi kesalahan'), 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSaveQuestionItem = async (q: Question) => {
@@ -228,7 +242,7 @@ export const QuizEditor: React.FC = () => {
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)} icon={<Eye className="w-4 h-4" />}>
             Preview Exam
           </Button>
-          <Button onClick={handleSaveQuiz} icon={<Save className="w-4 h-4" />}>
+          <Button onClick={() => handleSaveQuiz()} isLoading={submitting} icon={<Save className="w-4 h-4" />}>
             Simpan Quiz
           </Button>
         </div>
@@ -451,9 +465,9 @@ export const QuizEditor: React.FC = () => {
                     </div>
                   </div>
 
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
-                    {q.questionText}
-                  </p>
+                  <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
+                    <RichText content={q.questionText} />
+                  </div>
                 </div>
               ))}
 

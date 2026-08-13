@@ -1,6 +1,7 @@
 import mammoth from 'mammoth';
 import { Question, QuestionType } from '../types';
 import { normalizeMatchingPairs } from './questionUtils';
+import { cleanHtmlContent } from '../components/common/RichText';
 
 /**
  * Helper to process and format a question based on its specified type or auto-detected type from KUNCI / options.
@@ -13,6 +14,21 @@ function processFinalQuestion(
 ): Partial<Question> {
   const cleanKunci = (kunciText || '').trim();
   const upperKunci = cleanKunci.toUpperCase();
+
+  // Clean HTML formatting and remove Word bloat from all question fields
+  if (q.questionText) {
+    q.questionText = cleanHtmlContent(q.questionText);
+  }
+  if (q.discussion) {
+    q.discussion = cleanHtmlContent(q.discussion);
+  }
+  if (q.stimulus?.content && q.stimulus.type === 'text') {
+    q.stimulus.content = cleanHtmlContent(q.stimulus.content);
+  }
+  rawOptions = rawOptions.map((opt) => ({
+    ...opt,
+    text: cleanHtmlContent(opt.text),
+  }));
 
   // Auto-detect type if not explicitly set or if still default pilihan_ganda
   if (!q.type || q.type === 'pilihan_ganda') {
@@ -293,9 +309,9 @@ function extractCellContent(cell: Element): string {
   const hasRich = cell.querySelector('p, table, ul, ol, li, b, i, u, sub, sup') !== null;
 
   if (hasImg || hasRich) {
-    return cell.innerHTML.trim();
+    return cleanHtmlContent(cell.innerHTML);
   }
-  return (cell.textContent || '').trim();
+  return cleanHtmlContent(cell.textContent || '');
 }
 
 /**

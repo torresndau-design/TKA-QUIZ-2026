@@ -4,6 +4,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
+import { RichText } from '../../components/common/RichText';
 import { showToast } from '../../components/common/Toast';
 import { Quiz, Participant, Question, Answer } from '../../types';
 import {
@@ -392,7 +393,7 @@ export const QuizReport: React.FC = () => {
                   </div>
 
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-relaxed">
-                    {q.questionText}
+                    <RichText content={q.questionText} />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -421,7 +422,7 @@ export const QuizReport: React.FC = () => {
 
                   {q.discussion && (
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-lg">
-                      <b>Pembahasan:</b> {q.discussion}
+                      <b>Pembahasan:</b> <RichText content={q.discussion} className="inline-block" />
                     </div>
                   )}
 
