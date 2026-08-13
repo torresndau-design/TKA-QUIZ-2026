@@ -1,4 +1,5 @@
 import { Question, Answer } from '../types';
+import { normalizeMatchingPairs } from './questionUtils';
 
 export interface EvaluationResult {
   isCorrect: boolean;
@@ -99,7 +100,7 @@ export function evaluateAnswer(question: Question, answerVal: any): EvaluationRe
     case 'menjodohkan':
     case 'drag_drop': {
       // answerVal is Record<pairId/leftId, rightText>
-      const pairs = question.matchingPairs || [];
+      const pairs = normalizeMatchingPairs(question.matchingPairs, question.options);
       if (pairs.length === 0) {
         return { isCorrect: true, scoreGiven: weight, requiresTeacherGrading: false };
       }

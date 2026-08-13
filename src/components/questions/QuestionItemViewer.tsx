@@ -4,6 +4,7 @@ import { StimulusViewer } from './StimulusViewer';
 import { MatchingLineQuestion } from './MatchingLineQuestion';
 import { Badge } from '../common/Badge';
 import { Volume2, Play } from 'lucide-react';
+import { normalizeMatchingPairs } from '../../utils/questionUtils';
 
 interface QuestionItemViewerProps {
   question: Question;
@@ -135,27 +136,7 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
         {['menjodohkan', 'drag_drop'].includes(question.type) && (
           <div className="space-y-3">
             {(() => {
-              const pairs =
-                question.matchingPairs && question.matchingPairs.length > 0
-                  ? question.matchingPairs
-                  : question.options && question.options.length > 0
-                  ? question.options.map((opt, idx) => {
-                      const match = opt.text.match(/^(.*?)\s*(?:[\=\>]|\=\>|\-\>|\||\:)\s*(.*)$/);
-                      if (match && match[1] && match[2]) {
-                        return {
-                          id: opt.id || `pair_${idx}`,
-                          leftItem: match[1].trim(),
-                          rightItem: match[2].trim(),
-                        };
-                      }
-                      return {
-                        id: opt.id || `pair_${idx}`,
-                        leftItem: opt.text,
-                        rightItem: `Pasangan ${idx + 1}`,
-                      };
-                    })
-                  : [];
-
+              const pairs = normalizeMatchingPairs(question.matchingPairs, question.options);
               const currentMap = typeof value === 'object' && value ? value : {};
 
               return (

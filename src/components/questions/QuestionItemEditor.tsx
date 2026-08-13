@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Question, QuestionType, AkmCategory, CognitiveLevel, DifficultyLevel } from '../../types';
 import { Button } from '../common/Button';
 import { Plus, Trash2, Check } from 'lucide-react';
+import { normalizeMatchingPairs } from '../../utils/questionUtils';
 
 interface QuestionItemEditorProps {
   question?: Question;
@@ -45,10 +46,14 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
 
   // Matching Pairs
   const [matchingPairs, setMatchingPairs] = useState(
-    question?.matchingPairs || [
-      { id: 'pair_1', leftItem: 'Item Kiri A', rightItem: 'Pasangan Kanan A' },
-      { id: 'pair_2', leftItem: 'Item Kiri B', rightItem: 'Pasangan Kanan B' },
-    ]
+    question?.matchingPairs && question.matchingPairs.length > 0
+      ? normalizeMatchingPairs(question.matchingPairs)
+      : question?.options && question.options.length > 0
+      ? normalizeMatchingPairs(undefined, question.options)
+      : [
+          { id: 'pair_1', leftItem: 'Item Kiri A', rightItem: 'Pasangan Kanan A' },
+          { id: 'pair_2', leftItem: 'Item Kiri B', rightItem: 'Pasangan Kanan B' },
+        ]
   );
 
   // True/False Items
@@ -90,7 +95,7 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
       options: ['pilihan_ganda', 'pg_kompleks', 'checklist', 'pilihan_gambar', 'pilihan_audio', 'pilihan_video'].includes(type)
         ? options
         : undefined,
-      matchingPairs: ['menjodohkan', 'drag_drop'].includes(type) ? matchingPairs : undefined,
+      matchingPairs: ['menjodohkan', 'drag_drop'].includes(type) ? normalizeMatchingPairs(matchingPairs) : undefined,
       trueFalseItems: ['benar_salah', 'setuju_tidak_setuju'].includes(type) ? trueFalseItems : undefined,
       correctAnswerText: ['isian_singkat', 'melengkapi_kalimat'].includes(type) ? correctAnswerText : undefined,
       numericAnswer: type === 'isian_angka' ? Number(numericAnswer) : undefined,

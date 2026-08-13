@@ -1,5 +1,6 @@
 import mammoth from 'mammoth';
 import { Question, QuestionType } from '../types';
+import { normalizeMatchingPairs } from './questionUtils';
 
 /**
  * Helper to process and format a question based on its specified type or auto-detected type from KUNCI / options.
@@ -127,7 +128,9 @@ function processFinalQuestion(
             if (/^\d+$/.test(rightVal)) {
               const rightIdx = parseInt(rightVal, 10) - 1;
               if (rawOptions[rightIdx]) {
-                pairs[leftIndex].rightItem = rawOptions[rightIdx].text;
+                const rightOptText = rawOptions[rightIdx].text;
+                const rMatch = rightOptText.match(/^(.*?)\s*(?:[\=\>]|\=\>|\-\>|\||\:)\s*(.*)$/);
+                pairs[leftIndex].rightItem = rMatch && rMatch[2] ? rMatch[2].trim() : rightOptText.trim();
               }
             } else {
               pairs[leftIndex].rightItem = rightVal;
@@ -137,9 +140,10 @@ function processFinalQuestion(
       });
     }
 
+    const normalized = normalizeMatchingPairs(pairs);
     q.matchingPairs =
-      pairs.length > 0
-        ? pairs
+      normalized.length > 0
+        ? normalized
         : [
             {
               id: `pair_${Date.now()}`,
