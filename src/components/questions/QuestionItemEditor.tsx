@@ -307,6 +307,74 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
         </div>
       )}
 
+      {['menjodohkan', 'drag_drop'].includes(type) && (
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Daftar Pasangan Penjodohan (Kolom Kiri = Kolom Kanan)
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              icon={<Plus className="w-3.5 h-3.5" />}
+              onClick={() =>
+                setMatchingPairs([
+                  ...matchingPairs,
+                  {
+                    id: `pair_${Date.now()}`,
+                    leftItem: `Pernyataan Kiri ${matchingPairs.length + 1}`,
+                    rightItem: `Jawaban Kanan ${matchingPairs.length + 1}`,
+                  },
+                ])
+              }
+            >
+              Tambah Pasangan
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {matchingPairs.map((pair, idx) => (
+              <div key={pair.id} className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-700/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-500 w-5">{idx + 1}.</span>
+                <input
+                  type="text"
+                  value={pair.leftItem}
+                  onChange={(e) =>
+                    setMatchingPairs(
+                      matchingPairs.map((p) => (p.id === pair.id ? { ...p, leftItem: e.target.value } : p))
+                    )
+                  }
+                  placeholder="Soal / Pernyataan Kiri..."
+                  className="flex-1 p-2 text-xs bg-white dark:bg-slate-800 border rounded-lg"
+                />
+                <span className="text-xs font-bold text-[#2563EB] px-1">=</span>
+                <input
+                  type="text"
+                  value={pair.rightItem}
+                  onChange={(e) =>
+                    setMatchingPairs(
+                      matchingPairs.map((p) => (p.id === pair.id ? { ...p, rightItem: e.target.value } : p))
+                    )
+                  }
+                  placeholder="Jawaban Kanan..."
+                  className="flex-1 p-2 text-xs bg-white dark:bg-slate-800 border rounded-lg"
+                />
+                {matchingPairs.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setMatchingPairs(matchingPairs.filter((p) => p.id !== pair.id))}
+                    className="p-1 text-rose-500 hover:text-rose-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {['isian_singkat', 'melengkapi_kalimat'].includes(type) && (
         <div>
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Jawaban Benar Teks</label>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Question } from '../../types';
 import { StimulusViewer } from './StimulusViewer';
+import { MatchingLineQuestion } from './MatchingLineQuestion';
 import { Badge } from '../common/Badge';
 import { Volume2, Play } from 'lucide-react';
 
@@ -133,68 +134,40 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
         {/* 3. Menjodohkan & 11. Drag and Drop */}
         {['menjodohkan', 'drag_drop'].includes(question.type) && (
           <div className="space-y-3">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Pilih / jodohkan setiap item di kolom kiri dengan pasangan di kolom kanan.
-            </p>
-            <div className="grid grid-cols-1 gap-3">
-              {(() => {
-                const pairs =
-                  question.matchingPairs && question.matchingPairs.length > 0
-                    ? question.matchingPairs
-                    : question.options && question.options.length > 0
-                    ? question.options.map((opt, idx) => {
-                        const match = opt.text.match(/^(.*?)\s*(?:[\=\>]|\=\>|\-\>|\||\:)\s*(.*)$/);
-                        if (match && match[1] && match[2]) {
-                          return {
-                            id: opt.id || `pair_${idx}`,
-                            leftItem: match[1].trim(),
-                            rightItem: match[2].trim(),
-                          };
-                        }
+            {(() => {
+              const pairs =
+                question.matchingPairs && question.matchingPairs.length > 0
+                  ? question.matchingPairs
+                  : question.options && question.options.length > 0
+                  ? question.options.map((opt, idx) => {
+                      const match = opt.text.match(/^(.*?)\s*(?:[\=\>]|\=\>|\-\>|\||\:)\s*(.*)$/);
+                      if (match && match[1] && match[2]) {
                         return {
                           id: opt.id || `pair_${idx}`,
-                          leftItem: opt.text,
-                          rightItem: `Pasangan ${idx + 1}`,
+                          leftItem: match[1].trim(),
+                          rightItem: match[2].trim(),
                         };
-                      })
-                    : [];
+                      }
+                      return {
+                        id: opt.id || `pair_${idx}`,
+                        leftItem: opt.text,
+                        rightItem: `Pasangan ${idx + 1}`,
+                      };
+                    })
+                  : [];
 
-                const availableRights = pairs.map((p) => p.rightItem);
+              const currentMap = typeof value === 'object' && value ? value : {};
 
-                return pairs.map((pair) => {
-                  const currentMap = typeof value === 'object' && value ? value : {};
-                  const selectedVal = currentMap[pair.id] || '';
-
-                  return (
-                    <div
-                      key={pair.id}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-3"
-                    >
-                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 md:w-1/2">
-                        {pair.leftItem}
-                      </span>
-                      <select
-                        value={selectedVal}
-                        onChange={(e) =>
-                          onChange({
-                            ...currentMap,
-                            [pair.id]: e.target.value,
-                          })
-                        }
-                        className="md:w-1/2 p-2 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">-- Pilih Pasangan --</option>
-                        {availableRights.map((rt, idx) => (
-                          <option key={idx} value={rt}>
-                            {rt}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+              return (
+                <MatchingLineQuestion
+                  questionId={question.id}
+                  pairs={pairs}
+                  value={currentMap}
+                  onChange={onChange}
+                  readOnly={showDiscussion}
+                />
+              );
+            })()}
           </div>
         )}
 
