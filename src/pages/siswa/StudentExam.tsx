@@ -321,8 +321,29 @@ export const StudentExam: React.FC = () => {
     );
   }
 
-  const answeredCount = Object.keys(userAnswers).filter((k) => userAnswers[k] !== undefined && userAnswers[k] !== null && userAnswers[k] !== '').length;
-  const progressPercent = Math.round((answeredCount / questions.length) * 100);
+  const checkIsAnswered = (val: any): boolean => {
+    if (val === undefined || val === null || val === '') return false;
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === 'object') {
+      const keys = Object.keys(val);
+      if (keys.length === 0) return false;
+      return keys.some((k) => val[k] !== undefined && val[k] !== null && val[k] !== '');
+    }
+    return true;
+  };
+
+  const answeredCount = questions.filter((q) => checkIsAnswered(userAnswers[q.id])).length;
+  const progressPercent = Math.round((answeredCount / (questions.length || 1)) * 100);
+
+  const unansweredIndices = questions
+    .map((q, idx) => ({ q, idx }))
+    .filter(({ q }) => !checkIsAnswered(userAnswers[q.id]))
+    .map(({ idx }) => idx);
+
+  const flaggedIndices = questions
+    .map((q, idx) => ({ q, idx }))
+    .filter(({ q }) => !!flaggedMap[q.id])
+    .map(({ idx }) => idx);
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col font-sans">
@@ -430,10 +451,7 @@ export const StudentExam: React.FC = () => {
 
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
-                const isAnswered =
-                  userAnswers[q.id] !== undefined &&
-                  userAnswers[q.id] !== null &&
-                  userAnswers[q.id] !== '';
+                const isAnswered = checkIsAnswered(userAnswers[q.id]);
                 const isFlagged = flaggedMap[q.id];
                 const isCurrent = idx === currentIndex;
 
@@ -488,6 +506,66 @@ export const StudentExam: React.FC = () => {
             Anda telah menjawab <span className="font-bold text-slate-800 dark:text-slate-100">{answeredCount}</span> dari{' '}
             <span className="font-bold text-slate-800 dark:text-slate-100">{questions.length}</span> soal. Setelah dikirim, Anda tidak dapat mengubah jawaban lagi.
           </p>
+
+          {/* Peringatan Soal Belum Terjawab */}
+          {unansweredIndices.length > 0 ? (
+            <div className="bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 rounded-xl p-3.5 text-left text-xs space-y-2">
+              <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Peringatan: {unansweredIndices.length} Soal BELUM Dijawab!</span>
+              </div>
+              <p className="text-amber-800 dark:text-amber-300 text-[11px]">
+                Berikut adalah nomor soal yang masih kosong:
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {unansweredIndices.map((qIdx) => (
+                  <button
+                    key={qIdx}
+                    onClick={() => {
+                      setCurrentIndex(qIdx);
+                      setIsSubmitModalOpen(false);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-black text-xs transition-colors cursor-pointer shadow-sm flex items-center gap-1"
+                    title={`Klik untuk menjawab Soal No. ${qIdx + 1}`}
+                  >
+                    <span>No. {qIdx + 1}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-amber-700 dark:text-amber-400 italic pt-1">
+                *Klik nomor soal di atas untuk langsung berpindah dan menjawabnya.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Semua {questions.length} soal telah dijawab!</span>
+            </div>
+          )}
+
+          {/* Catatan Soal Ragu-Ragu */}
+          {flaggedIndices.length > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-left text-xs text-amber-800 dark:text-amber-200 space-y-1.5">
+              <div className="flex items-center gap-2 font-bold">
+                <Flag className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Catatan: {flaggedIndices.length} Soal Berstatus Ragu-Ragu</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {flaggedIndices.map((qIdx) => (
+                  <button
+                    key={qIdx}
+                    onClick={() => {
+                      setCurrentIndex(qIdx);
+                      setIsSubmitModalOpen(false);
+                    }}
+                    className="px-2.5 py-0.5 rounded-md bg-amber-400/30 hover:bg-amber-400/50 text-amber-900 dark:text-amber-200 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    No. {qIdx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)}>
