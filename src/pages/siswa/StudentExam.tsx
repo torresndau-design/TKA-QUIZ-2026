@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
-import { showToast, showConfirmDialog } from '../../components/common/Toast';
+import { showToast } from '../../components/common/Toast';
 import { QuestionItemViewer } from '../../components/questions/QuestionItemViewer';
 import { ZoomControls } from '../../components/common/ZoomControls';
 import { Quiz, Question, Participant, Answer } from '../../types';
@@ -38,29 +38,22 @@ export const StudentExam: React.FC = () => {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // User responses state: Record<questionId, any>
   const [userAnswers, setUserAnswers] = useState<Record<string, any>>({});
   const [flaggedMap, setFlaggedMap] = useState<Record<string, boolean>>({});
 
-  // Countdown timer state in seconds
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [violations, setViolations] = useState<number>(0);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Accessibility font scaling (100 = default)
   const [fontSizeLevel, setFontSizeLevel] = useState<number>(100);
 
-  // Loading & Error States
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Refs for tracking active intervals and state across renders
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
 
-  // Load initial exam data
   useEffect(() => {
     let isMounted = true;
 
@@ -94,7 +87,6 @@ export const StudentExam: React.FC = () => {
           return;
         }
 
-        // If participant already completed the exam, redirect to result
         if (fetchedParticipant.status === 'completed') {
           navigate(`/siswa/hasil/${participantId}`);
           return;
@@ -104,7 +96,6 @@ export const StudentExam: React.FC = () => {
         setQuestions(fetchedQuestions);
         setParticipant(fetchedParticipant);
 
-        // Prepopulate existing answers if student reloaded
         const answersMap: Record<string, any> = {};
         const flagged: Record<string, boolean> = {};
 
@@ -118,7 +109,6 @@ export const StudentExam: React.FC = () => {
         setUserAnswers(answersMap);
         setFlaggedMap(flagged);
 
-        // Initialize Timer
         const now = Date.now();
         const startTime = new Date(fetchedParticipant.startedAt).getTime();
         const durationSeconds = (fetchedQuiz.durationMinutes || 60) * 60;
@@ -141,7 +131,6 @@ export const StudentExam: React.FC = () => {
     };
   }, [quizId, participantId, navigate]);
 
-  // Handle countdown timer tick
   useEffect(() => {
     if (loading || error || !participant) return;
 
@@ -161,7 +150,6 @@ export const StudentExam: React.FC = () => {
     };
   }, [loading, error, participant]);
 
-  // Auto-save answer to database when changed
   const handleAnswerChange = async (val: any) => {
     const currentQ = questions[currentIndex];
     if (!currentQ || !participantId) return;
@@ -211,7 +199,6 @@ export const StudentExam: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Calculate final score
       let totalScore = 0;
       let maxScore = 0;
 
@@ -238,9 +225,7 @@ export const StudentExam: React.FC = () => {
 
       try {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      } catch (e) {
-        // Ignore if confetti fails
-      }
+      } catch (e) {}
 
       showToast('Ujian telah selesai dikirim!', 'success');
       navigate(`/siswa/hasil/${participantId}`);
@@ -326,15 +311,13 @@ export const StudentExam: React.FC = () => {
       {/* Header Bar */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 px-4 py-2.5 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 line-clamp-1">
-                {quiz.title}
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Peserta: <span className="font-bold text-slate-700 dark:text-slate-300">{participant?.studentName}</span>
-              </p>
-            </div>
+          <div>
+            <h1 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 line-clamp-1">
+              {quiz.title}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Peserta: <span className="font-bold text-slate-700 dark:text-slate-300">{participant?.studentName}</span>
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -345,7 +328,6 @@ export const StudentExam: React.FC = () => {
               onReset={() => setFontSizeLevel(100)}
             />
 
-            {/* Timer Badge */}
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono text-xs sm:text-sm font-bold ${
                 timeLeft < 300
@@ -362,7 +344,6 @@ export const StudentExam: React.FC = () => {
               size="sm"
               onClick={toggleFullscreen}
               className="hidden sm:flex"
-              title="Layar Penuh"
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </Button>
@@ -382,7 +363,6 @@ export const StudentExam: React.FC = () => {
 
       {/* Main Container */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col lg:flex-row gap-6">
-        {/* Left Side: Question Content */}
         <div className="flex-1 flex flex-col min-w-0">
           <Card className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-6">
             <QuestionItemViewer
@@ -393,7 +373,6 @@ export const StudentExam: React.FC = () => {
               fontSizeLevel={fontSizeLevel}
             />
 
-            {/* Bottom Actions */}
             <div className="pt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
               <Button
                 variant="outline"
@@ -430,7 +409,6 @@ export const StudentExam: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Side: Question Navigation Grid */}
         <div className="w-full lg:w-72 shrink-0">
           <Card className="p-4 sticky top-20">
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
@@ -463,23 +441,11 @@ export const StudentExam: React.FC = () => {
                 );
               })}
             </div>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 text-xs space-y-2 text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500" /> Sudah Dijawab
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-amber-400" /> Ragu-Ragu
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700" /> Belum Dijawab
-              </div>
-            </div>
           </Card>
         </div>
       </div>
 
-      {/* Confirmation Submit Modal */}
+      {/* Modal Konfirmasi */}
       <Modal
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
@@ -528,30 +494,6 @@ export const StudentExam: React.FC = () => {
             <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Semua {questions.length} soal telah dijawab!</span>
-            </div>
-          )}
-
-          {/* Catatan Soal Ragu-Ragu */}
-          {flaggedIndices.length > 0 && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-left text-xs text-amber-800 dark:text-amber-200 space-y-1.5">
-              <div className="flex items-center gap-2 font-bold">
-                <Flag className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Catatan: {flaggedIndices.length} Soal Berstatus Ragu-Ragu</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {flaggedIndices.map((qIdx) => (
-                  <button
-                    key={qIdx}
-                    onClick={() => {
-                      setCurrentIndex(qIdx);
-                      setIsSubmitModalOpen(false);
-                    }}
-                    className="px-2.5 py-0.5 rounded-md bg-amber-400/30 hover:bg-amber-400/50 text-amber-900 dark:text-amber-200 font-bold text-xs transition-colors cursor-pointer"
-                  >
-                    No. {qIdx + 1}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
