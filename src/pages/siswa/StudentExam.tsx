@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
-import { showToast } from '../../components/common/Toast';
+import { showToast, showConfirmDialog } from '../../components/common/Toast';
 import { QuestionItemViewer } from '../../components/questions/QuestionItemViewer';
 import { ZoomControls } from '../../components/common/ZoomControls';
 import { Quiz, Question, Participant, Answer } from '../../types';
@@ -38,250 +38,306 @@ export const StudentExam: React.FC = () => {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // User responses state: Record<questionId, any>
   const [userAnswers, setUserAnswers] = useState<Record<string, any>>({});
   const [flaggedMap, setFlaggedMap] = useState<Record<string, boolean>>({});
 
+  // Countdown timer state in seconds
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [violations, setViolations] = useState<number>(0);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [fontSizeLevel, setFontSizeLevel] = useState<number>(100);
+  const [fontSizeLevel, setFontSizeLevel] = useState(100);
 
   const [loading, setLoading] = useState<boolean>(true);
+  const [reloadingQuestions, setReloadingQuestions] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isSubmittingRef = useRef<boolean>(false);
+  const loadExamData = async () => {
+    if (!quizId || !participantId) {
+      setError('Parameter ujian tidak valid.');
+      setLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    let isMounted = true;
+    try {
+      const [qData, qstList, pData, existingAns] = await Promise.all([
+        getQuizById(quizId),
+        getQuestionsByQuiz(quizId),
+        getParticipantById(participantId),
+        getAnswersByParticipant(participantId),
+      ]);
 
-    async function loadData() {
-      if (!quizId || !participantId) {
-        setError('Parameter URL tidak lengkap.');
+      if (!qData) {
+        setError('Quiz tidak ditemukan atau telah dihapus oleh guru.');
         setLoading(false);
         return;
       }
 
-      try {
-        const [fetchedQuiz, fetchedQuestions, fetchedParticipant, fetchedAnswers] =
-          await Promise.all([
-            getQuizById(quizId),
-            getQuestionsByQuiz(quizId),
-            getParticipantById(participantId),
-            getAnswersByParticipant(participantId),
-          ]);
-
-        if (!isMounted) return;
-
-        if (!fetchedQuiz) {
-          setError('Kuis tidak ditemukan.');
-          setLoading(false);
-          return;
-        }
-
-        if (!fetchedParticipant) {
-          setError('Data peserta tidak ditemukan.');
-          setLoading(false);
-          return;
-        }
-
-        if (fetchedParticipant.status === 'completed') {
-          navigate(`/siswa/hasil/${participantId}`);
-          return;
-        }
-
-        setQuiz(fetchedQuiz);
-        setQuestions(fetchedQuestions);
-        setParticipant(fetchedParticipant);
-
-        const answersMap: Record<string, any> = {};
-        const flagged: Record<string, boolean> = {};
-
-        fetchedAnswers.forEach((ans) => {
-          answersMap[ans.questionId] = ans.answer;
-          if (ans.isFlagged) {
-            flagged[ans.questionId] = true;
+      let currentParticipant = pData;
+      if (!currentParticipant) {
+        const stored = localStorage.getItem(`akm_active_participant_${quizId}`);
+        if (stored) {
+          try {
+            currentParticipant = JSON.parse(stored);
+          } catch (e) {
+            console.warn(e);
           }
-        });
-
-        setUserAnswers(answersMap);
-        setFlaggedMap(flagged);
-
-        const now = Date.now();
-        const startTime = new Date(fetchedParticipant.startedAt).getTime();
-        const durationSeconds = (fetchedQuiz.durationMinutes || 60) * 60;
-        const elapsedSeconds = Math.floor((now - startTime) / 1000);
-        const remaining = Math.max(0, durationSeconds - elapsedSeconds);
-
-        setTimeLeft(remaining);
-      } catch (err) {
-        console.error('Error loading exam:', err);
-        setError('Gagal memuat data ujian.');
-      } finally {
-        if (isMounted) setLoading(false);
+        }
       }
+
+      if (!currentParticipant) {
+        setError('Data peserta ujian tidak ditemukan. Silakan masuk kembali melalui halaman pendaftaran.');
+        setLoading(false);
+        return;
+      }
+
+      setQuiz(qData);
+      setQuestions(qData.randomizeQuestions ? [...qstList].sort(() => Math.random() - 0.5) : qstList);
+      setParticipant(currentParticipant);
+
+      // Restore time left or set default duration
+      const durationSeconds = (qData.duration || 45) * 60;
+      const elapsedSeconds = Math.floor((Date.now() - new Date(currentParticipant.startedAt).getTime()) / 1000);
+      const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+      setTimeLeft(remaining);
+
+      // Restore saved answers
+      const ansMap: Record<string, any> = {};
+      const flagMap: Record<string, boolean> = {};
+      existingAns.forEach((a) => {
+        ansMap[a.questionId] = a.userAnswer;
+        flagMap[a.questionId] = !!a.isFlagged;
+      });
+      setUserAnswers(ansMap);
+      setFlaggedMap(flagMap);
+    } catch (err) {
+      console.error('StudentExam init error:', err);
+      setError('Gagal memuat ujian. Silakan periksa koneksi internet Anda dan coba lagi.');
+    } finally {
+      setLoading(false);
+      setReloadingQuestions(false);
     }
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [quizId, participantId, navigate]);
+  };
 
   useEffect(() => {
-    if (loading || error || !participant) return;
+    loadExamData();
+  }, [quizId, participantId]);
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          handleFinalSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
+  const handleReloadQuestions = async () => {
+    setReloadingQuestions(true);
+    await loadExamData();
+  };
+
+  // Timer Tick Effect
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      handleFinalSubmit();
+      return;
+    }
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
     }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+  // Anti-cheat tab switch detector
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setViolations((prev) => {
+          const nextVal = prev + 1;
+          showToast(`Peringatan: Dilarang membuka tab/aplikasi lain! (${nextVal}x)`, 'warning');
+          return nextVal;
+        });
+      }
     };
-  }, [loading, error, participant]);
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => window.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  const currentQuestion = questions[currentIndex];
 
   const handleAnswerChange = async (val: any) => {
-    const currentQ = questions[currentIndex];
-    if (!currentQ || !participantId) return;
+    if (!currentQuestion || !participantId || !quizId) return;
+    const updatedAnswers = { ...userAnswers, [currentQuestion.id]: val };
+    setUserAnswers(updatedAnswers);
 
-    setUserAnswers((prev) => ({ ...prev, [currentQ.id]: val }));
-
-    const answerRecord: Answer = {
+    // Auto Save to Firestore & Local Storage
+    const ansObj: Answer = {
+      id: `${participantId}_${currentQuestion.id}`,
       participantId,
-      questionId: currentQ.id,
-      answer: val,
-      isFlagged: !!flaggedMap[currentQ.id],
+      quizId,
+      questionId: currentQuestion.id,
+      userAnswer: val,
+      isFlagged: flaggedMap[currentQuestion.id] || false,
       updatedAt: new Date().toISOString(),
     };
-
-    try {
-      await saveAnswer(answerRecord);
-    } catch (e) {
-      console.error('Gagal menyimpan jawaban:', e);
-    }
+    await saveAnswer(ansObj);
   };
 
-  const toggleFlag = async () => {
-    const currentQ = questions[currentIndex];
-    if (!currentQ || !participantId) return;
+  const handleToggleFlag = async () => {
+    if (!currentQuestion || !participantId || !quizId) return;
+    const nextFlagState = !flaggedMap[currentQuestion.id];
+    setFlaggedMap({ ...flaggedMap, [currentQuestion.id]: nextFlagState });
 
-    const newFlag = !flaggedMap[currentQ.id];
-    setFlaggedMap((prev) => ({ ...prev, [currentQ.id]: newFlag }));
-
-    const answerRecord: Answer = {
+    const ansObj: Answer = {
+      id: `${participantId}_${currentQuestion.id}`,
       participantId,
-      questionId: currentQ.id,
-      answer: userAnswers[currentQ.id] || null,
-      isFlagged: newFlag,
+      quizId,
+      questionId: currentQuestion.id,
+      userAnswer: userAnswers[currentQuestion.id] ?? null,
+      isFlagged: nextFlagState,
       updatedAt: new Date().toISOString(),
     };
-
-    try {
-      await saveAnswer(answerRecord);
-    } catch (e) {
-      console.error('Gagal memperbarui status ragu-ragu:', e);
-    }
-  };
-
-  const handleFinalSubmit = async () => {
-    if (isSubmittingRef.current || !participant || !quiz) return;
-    isSubmittingRef.current = true;
-    setSubmitting(true);
-
-    try {
-      let totalScore = 0;
-      let maxScore = 0;
-
-      questions.forEach((q) => {
-        const weight = q.weight || 10;
-        maxScore += weight;
-        const uAns = userAnswers[q.id];
-        if (uAns !== undefined && uAns !== null) {
-          const isCorrect = evaluateAnswer(q, uAns);
-          if (isCorrect) totalScore += weight;
-        }
-      });
-
-      const finalGrade = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-
-      const updatedParticipant: Participant = {
-        ...participant,
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        score: finalGrade,
-      };
-
-      await saveParticipant(updatedParticipant);
-
-      try {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      } catch (e) {}
-
-      showToast('Ujian telah selesai dikirim!', 'success');
-      navigate(`/siswa/hasil/${participantId}`);
-    } catch (err) {
-      console.error('Error submitting exam:', err);
-      showToast('Gagal mengirim jawaban, coba lagi.', 'error');
-      isSubmittingRef.current = false;
-      setSubmitting(false);
-    }
+    await saveAnswer(ansObj);
   };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
-      }
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
+  const formatTimer = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    if (h > 0) {
-      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!participant || !quiz) return;
+    setSubmitting(true);
+
+    let totalWeight = 0;
+    let earnedWeight = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+
+    for (const q of questions) {
+      totalWeight += q.weight;
+      const userVal = userAnswers[q.id];
+      const result = evaluateAnswer(q, userVal);
+
+      if (result.isCorrect) {
+        correctCount++;
+        earnedWeight += result.scoreGiven;
+      } else {
+        wrongCount++;
+      }
+
+      // Save complete evaluated answer record to database
+      const ansObj: Answer = {
+        id: `${participant.id}_${q.id}`,
+        participantId: participant.id,
+        quizId: quiz.id,
+        questionId: q.id,
+        userAnswer: userVal ?? null,
+        isCorrect: result.isCorrect,
+        scoreGiven: result.scoreGiven,
+        isFlagged: !!flaggedMap[q.id],
+        updatedAt: new Date().toISOString(),
+      };
+      await saveAnswer(ansObj);
+    }
+
+    const finalScorePercentage = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+
+    const updatedParticipant: Participant = {
+      ...participant,
+      submittedAt: new Date().toISOString(),
+      isFinished: true,
+      score: finalScorePercentage,
+      correctCount,
+      wrongCount,
+      antiCheatViolations: violations,
+    };
+
+    await saveParticipant(updatedParticipant);
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    showToast('Jawaban berhasil dikirim!');
+    navigate(`/exam/result/${participant.id}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-        <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-medium text-slate-400">Memuat Lembar Ujian...</p>
-        </div>
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-300 font-bold text-sm">Memuat lembar ujian...</p>
       </div>
     );
   }
 
-  if (error || !quiz || questions.length === 0) {
+  if (error || !quiz || !participant) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4">
-        <Card className="max-w-md w-full p-6 text-center space-y-4">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
-          <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Gagal Memuat Ujian</h3>
-          <p className="text-xs text-slate-500">{error || 'Data kuis atau soal kosong.'}</p>
-          <Button onClick={() => navigate('/')}>Kembali ke Beranda</Button>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center p-8 space-y-6 bg-slate-800 border-slate-700">
+          <AlertTriangle className="w-14 h-14 text-amber-500 mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-100">Gagal Memuat Ujian</h2>
+            <p className="text-xs text-slate-400">{error || 'Data ujian tidak dapat ditemukan.'}</p>
+          </div>
+          <Button onClick={() => navigate(quizId ? `/exam/${quizId}` : '/')} className="w-full">
+            Kembali ke Halaman Masuk
+          </Button>
         </Card>
       </div>
     );
   }
 
-  const currentQ = questions[currentIndex];
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center p-8 space-y-6 bg-slate-800 border-slate-700">
+          <AlertTriangle className="w-14 h-14 text-amber-500 mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-100">Soal Belum Tersedia</h2>
+            <p className="text-xs text-slate-400">
+              Soal untuk ujian "<b>{quiz.title}</b>" sedang disinkronkan atau pengampu ({quiz.teacherName || 'Guru'}) belum mengunggah soal.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Button
+              onClick={handleReloadQuestions}
+              isLoading={reloadingQuestions}
+              className="w-full"
+            >
+              Coba Muat Ulang Soal
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/exam/${quizId}`)}
+              className="w-full text-slate-300 border-slate-700 hover:bg-slate-700"
+            >
+              Kembali ke Halaman Masuk
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center p-8 space-y-6 bg-slate-800 border-slate-700">
+          <AlertTriangle className="w-14 h-14 text-amber-500 mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-100">Soal Tidak Ditemukan</h2>
+            <p className="text-xs text-slate-400">Indeks soal tidak valid.</p>
+          </div>
+          <Button onClick={() => setCurrentIndex(0)} className="w-full">
+            Kembali ke Soal Pertama
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   const checkIsAnswered = (val: any): boolean => {
     if (val === undefined || val === null || val === '') return false;
@@ -295,6 +351,7 @@ export const StudentExam: React.FC = () => {
   };
 
   const answeredCount = questions.filter((q) => checkIsAnswered(userAnswers[q.id])).length;
+  const progressPercent = Math.round((answeredCount / (questions.length || 1)) * 100);
 
   const unansweredIndices = questions
     .map((q, idx) => ({ q, idx }))
@@ -307,145 +364,152 @@ export const StudentExam: React.FC = () => {
     .map(({ idx }) => idx);
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col font-sans select-none">
-      {/* Header Bar */}
-      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 px-4 py-2.5 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <h1 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 line-clamp-1">
-              {quiz.title}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Peserta: <span className="font-bold text-slate-700 dark:text-slate-300">{participant?.studentName}</span>
-            </p>
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col font-sans">
+      {/* Top Header Bar */}
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-3 sm:px-4 py-2.5 sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center space-x-2 sm:space-x-3 overflow-hidden">
+          <div className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[160px] sm:max-w-xs">{quiz.title}</div>
+          <span className="text-xs text-slate-400 hidden sm:inline">• {participant.fullName} ({participant.studentClass})</span>
+        </div>
+
+        {/* Timer & Zoom & Actions */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <ZoomControls fontSizeLevel={fontSizeLevel} setFontSizeLevel={setFontSizeLevel} />
+
+          <div className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-xl flex items-center space-x-1.5 sm:space-x-2 font-mono font-black text-xs sm:text-base shadow-sm ${
+            timeLeft < 300 ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-50 dark:bg-blue-950 text-[#2563EB]'
+          }`}>
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>{formatTimer(timeLeft)}</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <ZoomControls
-              fontSizeLevel={fontSizeLevel}
-              onZoomIn={() => setFontSizeLevel((prev) => Math.min(prev + 10, 150))}
-              onZoomOut={() => setFontSizeLevel((prev) => Math.max(prev - 10, 80))}
-              onReset={() => setFontSizeLevel(100)}
-            />
+          <button
+            onClick={toggleFullscreen}
+            className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            title="Layar Penuh"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
 
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono text-xs sm:text-sm font-bold ${
-                timeLeft < 300
-                  ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 animate-pulse'
-                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-              }`}
-            >
-              <Clock className="w-4 h-4 shrink-0" />
-              <span>{formatTime(timeLeft)}</span>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFullscreen}
-              className="hidden sm:flex"
-            >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </Button>
-
-            <Button
-              variant="success"
-              size="sm"
-              onClick={() => setIsSubmitModalOpen(true)}
-              className="font-bold"
-            >
-              <Send className="w-4 h-4 mr-1.5" />
-              <span>Selesai</span>
-            </Button>
-          </div>
+          <Button variant="success" size="sm" onClick={() => setIsSubmitModalOpen(true)} icon={<Send className="w-4 h-4" />}>
+            <span className="hidden sm:inline">Selesai Ujian</span>
+            <span className="sm:hidden">Kirim</span>
+          </Button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 flex flex-col min-w-0">
-          <Card className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-6">
+      {/* Main Content Layout */}
+      <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Left 3 Cols: Question Area */}
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="p-4 sm:p-6">
             <QuestionItemViewer
-              question={currentQ}
+              question={currentQuestion}
               number={currentIndex + 1}
-              value={userAnswers[currentQ.id]}
+              value={userAnswers[currentQuestion.id]}
               onChange={handleAnswerChange}
               fontSizeLevel={fontSizeLevel}
             />
 
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
+            {/* Bottom Controls */}
+            <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
               <Button
                 variant="outline"
-                onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
                 disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex((prev) => prev - 1)}
+                icon={<ArrowLeft className="w-4 h-4" />}
               >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                <span>Sebelumnya</span>
+                Sebelumnya
               </Button>
 
-              <Button
-                variant={flaggedMap[currentQ.id] ? 'warning' : 'outline'}
-                onClick={toggleFlag}
-                size="sm"
+              <button
+                type="button"
+                onClick={handleToggleFlag}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  flaggedMap[currentQuestion.id]
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                }`}
               >
-                <Flag className="w-4 h-4 mr-1.5" />
-                <span>Ragu-Ragu</span>
-              </Button>
+                <Flag className="w-4 h-4" />
+                <span>{flaggedMap[currentQuestion.id] ? 'Ragu-ragu (Ditandai)' : 'Ragu-ragu'}</span>
+              </button>
 
               {currentIndex < questions.length - 1 ? (
                 <Button
-                  onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
+                  variant="primary"
+                  onClick={() => setCurrentIndex((prev) => prev + 1)}
+                  icon={<ArrowRight className="w-4 h-4" />}
                 >
-                  <span>Selanjutnya</span>
-                  <ArrowRight className="w-4 h-4 ml-1" />
+                  Selanjutnya
                 </Button>
               ) : (
-                <Button variant="success" onClick={() => setIsSubmitModalOpen(true)}>
-                  <span>Kirim Jawaban</span>
-                  <Send className="w-4 h-4 ml-1.5" />
+                <Button
+                  variant="success"
+                  onClick={() => setIsSubmitModalOpen(true)}
+                  icon={<CheckCircle2 className="w-4 h-4" />}
+                >
+                  Kirim Jawaban
                 </Button>
               )}
             </div>
           </Card>
         </div>
 
-        <div className="w-full lg:w-72 shrink-0">
-          <Card className="p-4 sticky top-20">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-              Navigasi Soal
-            </h3>
+        {/* Right 1 Col: Question Number Grid Navigator */}
+        <div className="lg:col-span-1 space-y-4">
+          <Card title="Navigasi Soal" subtitle={`Terjawab: ${answeredCount} dari ${questions.length} Soal`}>
+            {/* Progress bar */}
+            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden mb-4">
+              <div
+                className="bg-[#2563EB] h-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
 
-            <div className="grid grid-cols-5 gap-2 max-h-80 overflow-y-auto p-0.5">
+            <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
                 const isAnswered = checkIsAnswered(userAnswers[q.id]);
                 const isFlagged = flaggedMap[q.id];
                 const isCurrent = idx === currentIndex;
 
-                let btnStyle = 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200';
-                if (isCurrent) {
-                  btnStyle = 'bg-blue-600 text-white font-bold ring-2 ring-blue-400';
-                } else if (isFlagged) {
-                  btnStyle = 'bg-amber-400 text-slate-900 font-bold';
+                let btnBg = 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300';
+                if (isFlagged) {
+                  btnBg = 'bg-amber-400 text-white font-bold';
                 } else if (isAnswered) {
-                  btnStyle = 'bg-emerald-500 text-white font-bold';
+                  btnBg = 'bg-emerald-500 text-white font-bold';
                 }
 
                 return (
                   <button
                     key={q.id}
                     onClick={() => setCurrentIndex(idx)}
-                    className={`h-9 rounded-lg text-xs flex items-center justify-center transition-all cursor-pointer ${btnStyle}`}
+                    className={`h-10 rounded-xl text-xs font-bold transition-all relative ${btnBg} ${
+                      isCurrent ? 'ring-2 ring-offset-2 ring-blue-600 scale-105 z-10' : ''
+                    }`}
                   >
                     {idx + 1}
                   </button>
                 );
               })}
             </div>
+
+            <div className="mt-6 pt-4 border-t space-y-2 text-[11px] font-semibold text-slate-500">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-500" /> Sudah Dijawab
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-400" /> Ragu-Ragu
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700" /> Belum Dijawab
+              </div>
+            </div>
           </Card>
         </div>
       </div>
 
-      {/* Modal Konfirmasi */}
+      {/* Confirmation Submit Modal */}
       <Modal
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
@@ -494,6 +558,30 @@ export const StudentExam: React.FC = () => {
             <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Semua {questions.length} soal telah dijawab!</span>
+            </div>
+          )}
+
+          {/* Catatan Soal Ragu-Ragu */}
+          {flaggedIndices.length > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-left text-xs text-amber-800 dark:text-amber-200 space-y-1.5">
+              <div className="flex items-center gap-2 font-bold">
+                <Flag className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Catatan: {flaggedIndices.length} Soal Berstatus Ragu-Ragu</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {flaggedIndices.map((qIdx) => (
+                  <button
+                    key={qIdx}
+                    onClick={() => {
+                      setCurrentIndex(qIdx);
+                      setIsSubmitModalOpen(false);
+                    }}
+                    className="px-2.5 py-0.5 rounded-md bg-amber-400/30 hover:bg-amber-400/50 text-amber-900 dark:text-amber-200 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    No. {qIdx + 1}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

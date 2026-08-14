@@ -17,6 +17,7 @@ export const TeacherManagement: React.FC = () => {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<User | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -62,26 +63,37 @@ export const TeacherManagement: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const matchedSubject = subjects.find((s) => s.id === subjectId);
+    if (!name.trim() || !email.trim()) {
+      showToast('Nama Lengkap dan Email wajib diisi!', 'error');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const matchedSubject = subjects.find((s) => s.id === subjectId);
 
-    const userObj: User = {
-      uid: editingTeacher?.uid || `guru_${Date.now()}`,
-      email,
-      password,
-      name,
-      role: 'GURU',
-      nip,
-      subjectId,
-      subjectName: matchedSubject?.name || 'Mata Pelajaran',
-      isActive,
-      createdAt: editingTeacher?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      const userObj: User = {
+        uid: editingTeacher?.uid || `guru_${Date.now()}`,
+        email: email.trim(),
+        password: password.trim() || 'guru123',
+        name: name.trim(),
+        role: 'GURU',
+        nip: nip.trim(),
+        subjectId,
+        subjectName: matchedSubject?.name || 'Mata Pelajaran',
+        isActive,
+        createdAt: editingTeacher?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    await saveUser(userObj);
-    showToast(editingTeacher ? 'Data guru berhasil diperbarui' : 'Guru baru berhasil ditambahkan');
-    setIsModalOpen(false);
-    loadData();
+      await saveUser(userObj);
+      showToast(editingTeacher ? 'Data guru berhasil diperbarui' : 'Guru baru berhasil ditambahkan', 'success');
+      setIsModalOpen(false);
+      await loadData();
+    } catch (err: any) {
+      showToast('Gagal menyimpan data guru: ' + (err?.message || 'terjadi kesalahan'), 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async (uid: string, teacherName: string) => {
@@ -315,7 +327,7 @@ export const TeacherManagement: React.FC = () => {
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Batal
             </Button>
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" isLoading={submitting}>
               Simpan Data
             </Button>
           </div>

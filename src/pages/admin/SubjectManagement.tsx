@@ -15,6 +15,7 @@ export const SubjectManagement: React.FC = () => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const loadData = async () => {
     const list = await getSubjects();
@@ -43,17 +44,28 @@ export const SubjectManagement: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newObj: Subject = {
-      id: editingSubject?.id || `subj_${Date.now()}`,
-      code,
-      name,
-      description,
-      createdAt: editingSubject?.createdAt || new Date().toISOString(),
-    };
-    await saveSubject(newObj);
-    showToast(editingSubject ? 'Mata Pelajaran berhasil diperbarui' : 'Mata Pelajaran baru ditambahkan');
-    setIsModalOpen(false);
-    loadData();
+    if (!code.trim() || !name.trim()) {
+      showToast('Kode dan Nama Mapel wajib diisi!', 'error');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const newObj: Subject = {
+        id: editingSubject?.id || `subj_${Date.now()}`,
+        code: code.trim(),
+        name: name.trim(),
+        description: description.trim(),
+        createdAt: editingSubject?.createdAt || new Date().toISOString(),
+      };
+      await saveSubject(newObj);
+      showToast(editingSubject ? 'Mata Pelajaran berhasil diperbarui' : 'Mata Pelajaran baru ditambahkan', 'success');
+      setIsModalOpen(false);
+      await loadData();
+    } catch (err: any) {
+      showToast('Gagal menyimpan mata pelajaran: ' + (err?.message || 'terjadi kesalahan'), 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async (id: string, nameStr: string) => {
@@ -167,7 +179,7 @@ export const SubjectManagement: React.FC = () => {
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Batal
             </Button>
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" isLoading={submitting}>
               Simpan Mapel
             </Button>
           </div>

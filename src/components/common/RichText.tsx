@@ -6,6 +6,45 @@ interface RichTextProps {
 }
 
 /**
+ * Checks if string is a local un-embedded Word file path (e.g. *_files/image001.png or file://...)
+ */
+export function isLocalWordImagePath(src?: string): boolean {
+  if (!src) return false;
+  const str = String(src).trim();
+  return (
+    /_files\//i.test(str) ||
+    /^file:\/\//i.test(str) ||
+    /^[a-z]:\\/i.test(str) ||
+    (!str.startsWith('http') && !str.startsWith('data:') && !str.startsWith('blob:') && /\.(png|jpe?g|gif|webp|svg|bmp)/i.test(str))
+  );
+}
+
+/**
+ * Validates if a string is a valid displayable image URL or base64 data URI
+ */
+export function isValidImageSrc(src?: string): boolean {
+  if (!src) return false;
+  const str = String(src).trim();
+  if (!str) return false;
+
+  // Local file path relative to Word export (e.g. *_files/image001.png or C:\...) -> INVALID for web browser
+  if (/_files\//i.test(str) || /^file:\/\//i.test(str) || /^[a-z]:\\/i.test(str)) {
+    return false;
+  }
+
+  // Standard http/https URL
+  if (/^https?:\/\//i.test(str)) return true;
+  // Base64 data URL
+  if (/^data:image\/[a-zA-Z0-9\+\-\.]+;base64,/i.test(str)) return true;
+  // Blob URL
+  if (/^blob:/i.test(str)) return true;
+  // Relative web path (must start with / or ./)
+  if (/^(\/|\.\/)/.test(str) && /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(str)) return true;
+
+  return false;
+}
+
+/**
  * Extracts a clean image URL or base64 data string from raw text or HTML content
  */
 export function getCleanImageSrc(src?: string): string {
@@ -35,11 +74,33 @@ export function getCleanImageSrc(src?: string): string {
     }
   }
 
-  // 4. Strip any outer HTML tags like <p>, </p>, <div>, </div>, <br>
-  str = str.replace(/<[^>]+>/g, '').trim();
+  // 4. Strip outer HTML tags if not starting with http or data:
+  if (!str.startsWith('http') && !str.startsWith('data:')) {
+    str = str.replace(/<[^>]+>/g, '').trim();
+  }
 
   // 5. Decode URL entity &amp;
   str = str.replace(/&amp;/g, '&');
+
+  // 6. Fix base64 mime-types if misclassified by mammoth
+  if (str.startsWith('data:')) {
+    const commaIdx = str.indexOf(',');
+    if (commaIdx !== -1) {
+      const header = str.substring(0, commaIdx);
+      const base64Data = str.substring(commaIdx + 1).trim();
+
+      let detectedMime = '';
+      if (base64Data.startsWith('iVBORw0KGgo')) detectedMime = 'image/png';
+      else if (base64Data.startsWith('/9j/')) detectedMime = 'image/jpeg';
+      else if (base64Data.startsWith('R0lGOD')) detectedMime = 'image/gif';
+      else if (base64Data.startsWith('UklGR')) detectedMime = 'image/webp';
+      else if (base64Data.startsWith('PHN2Zw') || base64Data.startsWith('PD94bWw')) detectedMime = 'image/svg+xml';
+
+      if (detectedMime && !header.includes(detectedMime)) {
+        str = `data:${detectedMime};base64,${base64Data}`;
+      }
+    }
+  }
 
   return str;
 }
@@ -52,6 +113,11 @@ export function getCleanMediaSrc(src?: string): string {
   let str = String(src).trim();
   if (!str) return '';
 
+  // Return base64 data URLs and blobs immediately
+  if (str.startsWith('data:audio') || str.startsWith('data:video') || str.startsWith('blob:')) {
+    return str;
+  }
+
   const sourceMatch = str.match(/<source[^>]+src=["']([^"']+)["']/i) || str.match(/<(?:audio|video)[^>]+src=["']([^"']+)["']/i);
   if (sourceMatch && sourceMatch[1]) {
     str = sourceMatch[1].trim();
@@ -59,6 +125,15 @@ export function getCleanMediaSrc(src?: string): string {
 
   str = str.replace(/<[^>]+>/g, '').trim().replace(/&amp;/g, '&');
   return str;
+}
+
+export function isValidAudioSrc(src?: string): boolean {
+  if (!src) return false;
+  const s = src.trim();
+  if (!s || s === 'undefined' || s === 'null') return false;
+  if (s.startsWith('data:audio') || s.startsWith('blob:')) return true;
+  if (s.startsWith('http://') || s.startsWith('https://')) return true;
+  return false;
 }
 
 /**

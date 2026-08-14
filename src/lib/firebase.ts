@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
@@ -15,12 +15,11 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Specify databaseId if provided in config (and not default)
 const firestoreDatabaseId = firebaseConfigJson.firestoreDatabaseId;
-export const db =
-  firestoreDatabaseId && firestoreDatabaseId !== '(default)'
-    ? getFirestore(app, firestoreDatabaseId)
-    : getFirestore(app);
+
+export const db = firestoreDatabaseId
+  ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, firestoreDatabaseId)
+  : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);

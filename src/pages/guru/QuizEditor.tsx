@@ -9,6 +9,7 @@ import { RichText } from '../../components/common/RichText';
 import { showToast, showConfirmDialog } from '../../components/common/Toast';
 import { QuestionItemEditor } from '../../components/questions/QuestionItemEditor';
 import { QuestionItemViewer } from '../../components/questions/QuestionItemViewer';
+import { StimulusViewer } from '../../components/questions/StimulusViewer';
 import { Quiz, Question, Subject, QuizStatus } from '../../types';
 import {
   getQuizById,
@@ -16,6 +17,7 @@ import {
   getSubjects,
   getQuestionsByQuiz,
   saveQuestion,
+  saveMultipleQuestions,
   deleteQuestion,
 } from '../../services/db';
 import { exportQuestionsToExcel } from '../../utils/excel';
@@ -33,6 +35,9 @@ import {
   HelpCircle,
   Shuffle,
   EyeOff,
+  Copy,
+  Check,
+  Share2,
 } from 'lucide-react';
 
 export const QuizEditor: React.FC = () => {
@@ -42,6 +47,7 @@ export const QuizEditor: React.FC = () => {
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Quiz Form Fields
   const [quizId] = useState<string>(id || `quiz_${Date.now()}`);
@@ -97,6 +103,14 @@ export const QuizEditor: React.FC = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
+  const handleCopyExamLink = () => {
+    const url = `${window.location.origin}/exam/${quizId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    showToast('Link ujian siswa berhasil disalin!', 'success');
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
   const handleSaveQuiz = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!user) return;
@@ -133,12 +147,13 @@ export const QuizEditor: React.FC = () => {
 
       await saveQuiz(quizObj);
 
-      // Save/Sync all questions associated with this quizId
-      for (const q of questions) {
-        await saveQuestion({ ...q, quizId });
+      // Save and batch sync all questions associated with this quizId
+      if (questions.length > 0) {
+        const syncedQuestions = questions.map((q) => ({ ...q, quizId }));
+        await saveMultipleQuestions(syncedQuestions);
       }
 
-      showToast('Ujian/Kuis dan seluruh soal berhasil disimpan!', 'success');
+      showToast('Ujian/Kuis dan seluruh butir soal berhasil disimpan ke cloud!', 'success');
       navigate('/guru/quizzes');
     } catch (err: any) {
       showToast('Gagal menyimpan ujian: ' + (err?.message || 'terjadi kesalahan'), 'error');
@@ -148,7 +163,7 @@ export const QuizEditor: React.FC = () => {
   };
 
   const handleSaveQuestionItem = async (q: Question) => {
-    await saveQuestion(q);
+    await saveQuestion({ ...q, quizId });
     const updated = await getQuestionsByQuiz(quizId);
     setQuestions(updated);
     setIsQuestionModalOpen(false);
@@ -207,12 +222,41 @@ export const QuizEditor: React.FC = () => {
           discussion: item.discussion || '',
           createdAt: new Date().toISOString(),
         };
-        await saveQuestion(newQ);
         importedList.push(newQ);
       }
 
+      // Batch save all imported questions
+      await saveMultipleQuestions(importedList);
+
+      // Auto-sync quiz draft if title is provided
+      if (user) {
+        const matchedSubject = subjects.find((s) => s.id === subjectId);
+        const quizObj: Quiz = {
+          id: quizId,
+          title: title.trim() || 'Ujian Baru (Word Import)',
+          description: description.trim(),
+          subjectId,
+          subjectName: matchedSubject?.name || 'Mata Pelajaran',
+          targetClass: targetClass.trim(),
+          teacherId: user.uid,
+          teacherName: user.name,
+          duration: Number(duration) || 60,
+          minPassingGrade: Number(minPassingGrade) || 75,
+          randomizeQuestions,
+          randomizeAnswers,
+          showGrade,
+          showDiscussion,
+          status: status || 'PUBLISHED',
+          token: token.trim().toUpperCase() || 'TKA2026',
+          questionCount: questions.length + importedList.length,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await saveQuiz(quizObj);
+      }
+
       setQuestions((prev) => [...prev, ...importedList]);
-      showToast(`${importedList.length} soal berhasil di-import dari Word!`);
+      showToast(`${importedList.length} soal berhasil di-import & tersimpan di database!`, 'success');
     } catch (err) {
       console.error(err);
       showToast('Gagal memproses file Word', 'error');
@@ -238,7 +282,15 @@ export const QuizEditor: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyExamLink}
+            icon={copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+          >
+            {copiedLink ? 'Link Tersalin!' : 'Salin Link Siswa'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)} icon={<Eye className="w-4 h-4" />}>
             Preview Exam
           </Button>
@@ -465,6 +517,64 @@ export const QuizEditor: React.FC = () => {
                     </div>
                   </div>
 
+                  {q.stimulus && (
+                    <div className="pt-1">
+                      <StimulusViewer
+                        stimulus={q.stimulus || (q.type === 'pilihan_audio' ? { type: 'audio', content: '', title: 'Audio Soal' } : undefined)}
+                        onReplaceImage={async (newBase64) => {
+                          const updated: Question = {
+                            ...q,
+                            stimulus: {
+                              type: 'image',
+                              content: newBase64,
+                              title: q.stimulus?.title || 'Stimulus Gambar',
+                            },
+                          };
+                          await saveQuestion(updated);
+                          const refreshed = await getQuestionsByQuiz(quizId);
+                          setQuestions(refreshed);
+                          showToast('Gambar stimulus berhasil dipasang dan disimpan!');
+                        }}
+                        onReplaceAudio={async (newAudioData) => {
+                          const updated: Question = {
+                            ...q,
+                            stimulus: {
+                              type: 'audio',
+                              content: newAudioData,
+                              title: q.stimulus?.title || 'Stimulus Audio',
+                            },
+                          };
+                          await saveQuestion(updated);
+                          const refreshed = await getQuestionsByQuiz(quizId);
+                          setQuestions(refreshed);
+                          showToast('Audio soal berhasil disimpan!');
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {!q.stimulus && q.type === 'pilihan_audio' && (
+                    <div className="pt-1">
+                      <StimulusViewer
+                        stimulus={{ type: 'audio', content: '', title: 'Audio Soal Listening' }}
+                        onReplaceAudio={async (newAudioData) => {
+                          const updated: Question = {
+                            ...q,
+                            stimulus: {
+                              type: 'audio',
+                              content: newAudioData,
+                              title: 'Audio Soal Listening',
+                            },
+                          };
+                          await saveQuestion(updated);
+                          const refreshed = await getQuestionsByQuiz(quizId);
+                          setQuestions(refreshed);
+                          showToast('Audio soal berhasil disimpan!');
+                        }}
+                      />
+                    </div>
+                  )}
+
                   <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
                     <RichText content={q.questionText} />
                   </div>
@@ -500,11 +610,49 @@ export const QuizEditor: React.FC = () => {
       <Modal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} title="Preview Soal Ujian" maxWidth="3xl">
         <div className="space-y-6">
           <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 rounded-xl text-xs font-semibold text-blue-800 dark:text-blue-200">
-            📌 Tampilan simulasi berikut sesuai dengan yang akan dikerjakan oleh siswa di halaman ujian.
+            📌 Tampilan simulasi berikut sesuai dengan yang akan dikerjakan oleh siswa di halaman ujian. Anda dapat langsung menguji dan merekam/mengunggah suara pada soal listening.
           </div>
           {questions.map((q, i) => (
             <div key={q.id} className="p-4 border rounded-2xl bg-white dark:bg-slate-800">
-              <QuestionItemViewer question={q} number={i + 1} value={null} onChange={() => {}} showDiscussion={true} />
+              <QuestionItemViewer
+                question={
+                  !q.stimulus && q.type === 'pilihan_audio'
+                    ? { ...q, stimulus: { type: 'audio', content: '', title: 'Audio Soal Listening' } }
+                    : q
+                }
+                number={i + 1}
+                value={null}
+                onChange={() => {}}
+                showDiscussion={true}
+                onReplaceStimulusImage={async (newBase64) => {
+                  const updated: Question = {
+                    ...q,
+                    stimulus: {
+                      type: 'image',
+                      content: newBase64,
+                      title: q.stimulus?.title || 'Stimulus Gambar',
+                    },
+                  };
+                  await saveQuestion(updated);
+                  const refreshed = await getQuestionsByQuiz(quizId);
+                  setQuestions(refreshed);
+                  showToast('Gambar stimulus berhasil dipasang!');
+                }}
+                onReplaceStimulusAudio={async (newAudioData) => {
+                  const updated: Question = {
+                    ...q,
+                    stimulus: {
+                      type: 'audio',
+                      content: newAudioData,
+                      title: q.stimulus?.title || 'Audio Soal Listening',
+                    },
+                  };
+                  await saveQuestion(updated);
+                  const refreshed = await getQuestionsByQuiz(quizId);
+                  setQuestions(refreshed);
+                  showToast('Suara audio soal berhasil direkam & disimpan!');
+                }}
+              />
             </div>
           ))}
         </div>

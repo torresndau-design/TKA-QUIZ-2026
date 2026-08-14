@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { MatchingPair } from '../../types';
 import { Button } from '../common/Button';
+import { RichText } from '../common/RichText';
 import { RefreshCw, Unlink, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface MatchingLineQuestionProps {
@@ -35,6 +36,7 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
   const rightNodesRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
+  const [selectedRightText, setSelectedRightText] = useState<string | null>(null);
   const [lineCoords, setLineCoords] = useState<
     { pairId: string; leftId: string; rightItem: string; x1: number; y1: number; x2: number; y2: number; color: string }[]
   >([]);
@@ -44,6 +46,18 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
     const rights = Array.from(new Set(pairs.map((p) => p.rightItem)));
     return rights;
   }, [pairs]);
+
+  // If in readOnly mode (e.g. pembahasan) and value is empty, display the correct pair keys
+  const effectiveValue = React.useMemo(() => {
+    if (readOnly && Object.keys(value || {}).length === 0) {
+      const defaultMap: Record<string, string> = {};
+      pairs.forEach((p) => {
+        defaultMap[p.id] = p.rightItem;
+      });
+      return defaultMap;
+    }
+    return value || {};
+  }, [readOnly, value, pairs]);
 
   // Recalculate line coordinates whenever value, pairs, or window dimensions change
   const updateLines = React.useCallback(() => {
@@ -62,7 +76,7 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
     }[] = [];
 
     pairs.forEach((pair, index) => {
-      const matchedRight = value[pair.id];
+      const matchedRight = effectiveValue[pair.id];
       if (!matchedRight) return;
 
       const leftNode = leftNodesRef.current[pair.id];
@@ -93,7 +107,7 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
     });
 
     setLineCoords(newCoords);
-  }, [pairs, value]);
+  }, [pairs, effectiveValue]);
 
   useLayoutEffect(() => {
     updateLines();
@@ -114,10 +128,18 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
   // Handle clicking left item
   const handleLeftClick = (pairId: string) => {
     if (readOnly) return;
-    if (selectedLeftId === pairId) {
+
+    if (selectedRightText) {
+      // Connect right to left
+      const updated = { ...value, [pairId]: selectedRightText };
+      onChange(updated);
+      setSelectedRightText(null);
+      setSelectedLeftId(null);
+    } else if (selectedLeftId === pairId) {
       setSelectedLeftId(null);
     } else {
       setSelectedLeftId(pairId);
+      setSelectedRightText(null);
     }
   };
 
@@ -130,6 +152,12 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
       const updated = { ...value, [selectedLeftId]: rightItem };
       onChange(updated);
       setSelectedLeftId(null);
+      setSelectedRightText(null);
+    } else if (selectedRightText === rightItem) {
+      setSelectedRightText(null);
+    } else {
+      setSelectedRightText(rightItem);
+      setSelectedLeftId(null);
     }
   };
 
@@ -139,6 +167,8 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
     const updated = { ...value };
     delete updated[pairId];
     onChange(updated);
+    setSelectedLeftId(null);
+    setSelectedRightText(null);
   };
 
   // Reset all
@@ -146,9 +176,10 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
     if (readOnly) return;
     onChange({});
     setSelectedLeftId(null);
+    setSelectedRightText(null);
   };
 
-  const connectedCount = Object.keys(value).length;
+  const connectedCount = Object.keys(effectiveValue).length;
 
   return (
     <div className="space-y-4">
@@ -158,10 +189,12 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
           <Sparkles className="w-4 h-4 text-[#2563EB]" />
           <span>
             {readOnly
-              ? 'Tampilan Garis Penjodohkan'
+              ? 'Tampilan Garis Penjodohan'
               : selectedLeftId
-              ? '👉 Sekarang klik pilihan di Kolom Kanan untuk menarik garis!'
-              : 'Klik poin di Kolom Kiri, lalu klik poin di Kolom Kanan untuk menghubungkan garis.'}
+              ? '👉 Klik pilihan di Kolom Kanan untuk menghubungkan garis!'
+              : selectedRightText
+              ? '👉 Klik pernyataan di Kolom Kiri untuk menghubungkan garis!'
+              : 'Klik poin di Kolom Kiri lalu Kolom Kanan (atau sebaliknya) untuk menarik garis hubungan.'}
           </span>
         </div>
 
@@ -263,7 +296,7 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
             <div className="space-y-3">
               {pairs.map((pair, idx) => {
                 const isSelected = selectedLeftId === pair.id;
-                const connectedRight = value[pair.id];
+                const connectedRight = effectiveValue[pair.id];
                 const rightLetterIdx = connectedRight ? rightItems.indexOf(connectedRight) : -1;
                 const rightLetter = rightLetterIdx >= 0 ? String.fromCharCode(65 + rightLetterIdx) : null;
 
@@ -274,6 +307,8 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
                     className={`relative p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
                       isSelected
                         ? 'border-[#2563EB] bg-blue-50 dark:bg-blue-950/60 ring-2 ring-blue-400 shadow-md scale-[1.01]'
+                        : selectedRightText
+                        ? 'hover:border-blue-400 hover:bg-blue-50/40 border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
                         : connectedRight
                         ? 'border-emerald-500/80 bg-emerald-50/40 dark:bg-emerald-950/20 text-slate-800 dark:text-slate-100'
                         : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-300 dark:hover:border-slate-600'
@@ -283,8 +318,8 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
                       <span className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
-                      <div className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug">
-                        {pair.leftItem}
+                      <div className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug flex-1">
+                        <RichText content={pair.leftItem} />
                       </div>
                     </div>
 
@@ -313,6 +348,10 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
                       ) : isSelected ? (
                         <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 animate-pulse">
                           PILIH PASANGAN ▶
+                        </span>
+                      ) : selectedRightText ? (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-pulse">
+                          ◀ HUBUNGKAN
                         </span>
                       ) : null}
 
@@ -345,15 +384,18 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
             <div className="space-y-3">
               {rightItems.map((rightText, rIdx) => {
                 const letter = String.fromCharCode(65 + rIdx);
+                const isSelected = selectedRightText === rightText;
                 // Check if any left item is connected to this right item
-                const isMatchedToAny = Object.values(value).includes(rightText);
+                const isMatchedToAny = Object.values(effectiveValue).includes(rightText);
 
                 return (
                   <div
                     key={rIdx}
                     onClick={() => handleRightClick(rightText)}
                     className={`relative p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      selectedLeftId
+                      isSelected
+                        ? 'border-[#2563EB] bg-blue-50 dark:bg-blue-950/60 ring-2 ring-blue-400 shadow-md scale-[1.01]'
+                        : selectedLeftId
                         ? 'hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/20'
                         : isMatchedToAny
                         ? 'border-emerald-500/80 bg-emerald-50/40 dark:bg-emerald-950/20'
@@ -365,7 +407,9 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
                       <div
                         ref={(el) => (rightNodesRef.current[rightText] = el)}
                         className={`w-4 h-4 rounded-full border-2 transition-transform ${
-                          isMatchedToAny
+                          isSelected
+                            ? 'bg-[#2563EB] border-white scale-125 ring-4 ring-blue-300'
+                            : isMatchedToAny
                             ? 'bg-emerald-500 border-white ring-2 ring-emerald-300'
                             : 'bg-slate-300 dark:bg-slate-600 border-white dark:border-slate-800'
                         }`}
@@ -376,7 +420,7 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
                     </div>
 
                     <div className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-100 flex-1 pl-1">
-                      {rightText}
+                      <RichText content={rightText} />
                     </div>
                   </div>
                 );
@@ -388,3 +432,4 @@ export const MatchingLineQuestion: React.FC<MatchingLineQuestionProps> = ({
     </div>
   );
 };
+

@@ -1,6 +1,6 @@
 {
   "name": "TKA Quiz - SMKS SANJAYA BAJAWA",
   "description": "Aplikasi Web Quiz TKA (Tes Kemampuan Akademik) SMKS SANJAYA BAJAWA",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

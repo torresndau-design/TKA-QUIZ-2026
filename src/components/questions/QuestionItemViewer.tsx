@@ -6,6 +6,7 @@ import { Badge } from '../common/Badge';
 import { Volume2, Play } from 'lucide-react';
 import { normalizeMatchingPairs } from '../../utils/questionUtils';
 import { RichText } from '../common/RichText';
+import { AudioPlayer } from '../common/AudioPlayerRecorder';
 
 interface QuestionItemViewerProps {
   question: Question;
@@ -14,6 +15,8 @@ interface QuestionItemViewerProps {
   onChange: (val: any) => void;
   showDiscussion?: boolean;
   fontSizeLevel?: number;
+  onReplaceStimulusImage?: (newBase64: string) => void;
+  onReplaceStimulusAudio?: (newAudioData: string) => void;
 }
 
 export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
@@ -23,6 +26,8 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
   onChange,
   showDiscussion,
   fontSizeLevel = 100,
+  onReplaceStimulusImage,
+  onReplaceStimulusAudio,
 }) => {
   return (
     <div className="space-y-5" style={{ fontSize: `${fontSizeLevel}%` }}>
@@ -42,7 +47,11 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
       </div>
 
       {/* Stimulus */}
-      <StimulusViewer stimulus={question.stimulus} />
+      <StimulusViewer
+        stimulus={question.stimulus}
+        onReplaceImage={onReplaceStimulusImage}
+        onReplaceAudio={onReplaceStimulusAudio}
+      />
 
       {/* Question Text */}
       <RichText content={question.questionText} className="text-base font-semibold text-slate-800 dark:text-slate-100 leading-relaxed" />
@@ -77,7 +86,9 @@ export const QuestionItemViewer: React.FC<QuestionItemViewerProps> = ({
                       <img src={opt.imageUrl} alt="Pilihan" className="mt-2 max-h-40 rounded-lg border" />
                     )}
                     {opt.audioUrl && (
-                      <audio controls src={opt.audioUrl} className="mt-2 w-full max-w-sm" />
+                      <div className="mt-2 max-w-md">
+                        <AudioPlayer src={opt.audioUrl} title={`Opsi ${opt.text}`} allowEdit={false} />
+                      </div>
                     )}
                     {opt.videoUrl && (
                       <video controls src={opt.videoUrl} className="mt-2 max-h-48 rounded-lg" />

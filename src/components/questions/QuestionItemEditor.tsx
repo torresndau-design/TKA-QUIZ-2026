@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Question, QuestionType, AkmCategory, CognitiveLevel, DifficultyLevel } from '../../types';
 import { Button } from '../common/Button';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check, Mic, Upload, Music } from 'lucide-react';
 import { normalizeMatchingPairs } from '../../utils/questionUtils';
+import { AudioPlayer, AudioUploadRecorderModal } from '../common/AudioPlayerRecorder';
 
 interface QuestionItemEditorProps {
   question?: Question;
@@ -33,6 +34,7 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
   );
   const [stimulusTitle, setStimulusTitle] = useState(question?.stimulus?.title || '');
   const [stimulusContent, setStimulusContent] = useState(question?.stimulus?.content || '');
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
 
   // Options for Multiple Choice / Checklist
   const [options, setOptions] = useState(
@@ -214,7 +216,7 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
               className="w-full p-2 text-xs bg-white dark:bg-slate-800 border rounded-lg"
             >
               <option value="text">Teks Panjang</option>
-              <option value="image">Gambar (URL)</option>
+              <option value="image">Gambar (Upload / URL)</option>
               <option value="audio">Audio (URL)</option>
               <option value="video">Video Embed (URL)</option>
               <option value="table">Tabel HTML</option>
@@ -227,18 +229,117 @@ export const QuestionItemEditor: React.FC<QuestionItemEditorProps> = ({
               type="text"
               value={stimulusTitle}
               onChange={(e) => setStimulusTitle(e.target.value)}
-              placeholder="Contoh: Kutipan Cerpen"
+              placeholder="Contoh: Diagram Komponen Komputer"
               className="w-full p-2 text-xs bg-white dark:bg-slate-800 border rounded-lg"
             />
           </div>
         </div>
-        <textarea
-          rows={3}
-          value={stimulusContent}
-          onChange={(e) => setStimulusContent(e.target.value)}
-          placeholder="Isikan teks stimulus, link gambar, atau URL audio/video..."
-          className="w-full p-2.5 text-xs bg-white dark:bg-slate-800 border rounded-xl"
-        />
+
+        {stimulusType === 'image' ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm">
+                <span>📁 Pilih / Unggah Gambar dari Komputer</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      const reader = new FileReader();
+                      reader.onload = (re) => {
+                        const b64 = re.target?.result as string;
+                        if (b64) setStimulusContent(b64);
+                      };
+                      reader.readAsDataURL(f);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-xs text-slate-500">atau masukkan URL/Base64:</span>
+            </div>
+            <textarea
+              rows={2}
+              value={stimulusContent}
+              onChange={(e) => setStimulusContent(e.target.value)}
+              placeholder="https://... atau data:image/..."
+              className="w-full p-2.5 text-xs bg-white dark:bg-slate-800 border rounded-xl"
+            />
+            {stimulusContent && (
+              <div className="relative inline-block mt-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-lg border">
+                <img
+                  src={stimulusContent}
+                  alt="Preview Stimulus"
+                  className="max-h-36 rounded object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setStimulusContent('')}
+                  className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full text-xs hover:bg-red-700 shadow"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        ) : stimulusType === 'audio' ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAudioModalOpen(true)}
+                className="px-3.5 py-2 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Mic className="w-4 h-4" /> 🎙️ Rekam / Unggah Suara Audio
+              </button>
+              <span className="text-xs text-slate-500">atau masukkan URL:</span>
+            </div>
+            <textarea
+              rows={2}
+              value={stimulusContent}
+              onChange={(e) => setStimulusContent(e.target.value)}
+              placeholder="https://... atau data:audio/... (otomatis terisi saat merekam/mengunggah)"
+              className="w-full p-2.5 text-xs bg-white dark:bg-slate-800 border rounded-xl"
+            />
+            {stimulusContent && (
+              <div className="relative mt-2">
+                <AudioPlayer
+                  src={stimulusContent}
+                  title={stimulusTitle || 'Pratinjau Audio'}
+                  onReplaceAudio={(newData) => setStimulusContent(newData)}
+                  allowEdit={true}
+                />
+                <button
+                  type="button"
+                  onClick={() => setStimulusContent('')}
+                  className="mt-2 text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Hapus Audio Ini
+                </button>
+              </div>
+            )}
+            {isAudioModalOpen && (
+              <AudioUploadRecorderModal
+                isOpen={isAudioModalOpen}
+                onClose={() => setIsAudioModalOpen(false)}
+                onSave={(data) => setStimulusContent(data)}
+                initialAudio={stimulusContent}
+              />
+            )}
+          </div>
+        ) : (
+          <textarea
+            rows={3}
+            value={stimulusContent}
+            onChange={(e) => setStimulusContent(e.target.value)}
+            placeholder="Isikan teks stimulus, link gambar, atau URL audio/video..."
+            className="w-full p-2.5 text-xs bg-white dark:bg-slate-800 border rounded-xl"
+          />
+        )}
       </div>
 
       {/* Question Text */}

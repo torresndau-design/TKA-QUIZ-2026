@@ -1,22 +1,228 @@
 import mammoth from 'mammoth';
+import JSZip from 'jszip';
 import { Question, QuestionType } from '../types';
-import { normalizeMatchingPairs } from './questionUtils';
-import { cleanHtmlContent, getCleanImageSrc, getCleanMediaSrc } from '../components/common/RichText';
+import { normalizeMatchingPairs, splitMatchingPairText } from './questionUtils';
+import { cleanHtmlContent, getCleanImageSrc, getCleanMediaSrc, isValidImageSrc, isLocalWordImagePath } from '../components/common/RichText';
+
+interface DocxArchiveData {
+  mediaMap: Map<string, string>;
+  relMap: Map<string, string>;
+  cellImages: Map<string, string>;
+  orderedImages: string[];
+}
 
 /**
- * Extract image source from cell DOM node or fallback string
+ * Extracts embedded media files and XML relationships directly from .docx (ZIP) archive
  */
-function extractImageSrcFromCell(cellNode: Element | null, fallbackRaw: string): string {
+async function extractDocxArchive(arrayBuffer: ArrayBuffer): Promise<DocxArchiveData> {
+  const mediaMap = new Map<string, string>();
+  const relMap = new Map<string, string>();
+  const cellImages = new Map<string, string>();
+  const orderedImages: string[] = [];
+
+  try {
+    const zip = await JSZip.loadAsync(arrayBuffer);
+
+    // 1. Extract all media files from word/media/* or any media/ directory
+    const mediaFiles = Object.keys(zip.files).filter(
+      (path) =>
+        !zip.files[path].dir &&
+        (path.startsWith('word/media/') || path.includes('/media/') || path.includes('_files/'))
+    );
+
+    for (const filePath of mediaFiles) {
+      try {
+        const fileObj = zip.files[filePath];
+        const base64Data = await fileObj.async('base64');
+        if (!base64Data) continue;
+
+        let mime = 'image/png';
+        const lower = filePath.toLowerCase();
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mime = 'image/jpeg';
+        else if (lower.endsWith('.png')) mime = 'image/png';
+        else if (lower.endsWith('.gif')) mime = 'image/gif';
+        else if (lower.endsWith('.webp')) mime = 'image/webp';
+        else if (lower.endsWith('.svg')) mime = 'image/svg+xml';
+        else if (lower.endsWith('.bmp')) mime = 'image/bmp';
+        else if (lower.endsWith('.emf') || lower.endsWith('.wmf')) mime = 'image/png';
+        else {
+          if (base64Data.startsWith('iVBORw0KGgo')) mime = 'image/png';
+          else if (base64Data.startsWith('/9j/')) mime = 'image/jpeg';
+          else if (base64Data.startsWith('R0lGOD')) mime = 'image/gif';
+          else if (base64Data.startsWith('UklGR')) mime = 'image/webp';
+        }
+
+        const dataUrl = `data:${mime};base64,${base64Data}`;
+        const fileName = filePath.split('/').pop() || filePath;
+
+        // Store multiple key variants for robust lookup
+        mediaMap.set(filePath, dataUrl);
+        mediaMap.set(filePath.toLowerCase(), dataUrl);
+        mediaMap.set(fileName, dataUrl);
+        mediaMap.set(fileName.toLowerCase(), dataUrl);
+        if (filePath.startsWith('word/')) {
+          const subPath = filePath.substring(5); // media/image1.png
+          mediaMap.set(subPath, dataUrl);
+          mediaMap.set(subPath.toLowerCase(), dataUrl);
+        }
+
+        orderedImages.push(dataUrl);
+      } catch (e) {
+        console.warn('Error reading media file from docx zip:', filePath, e);
+      }
+    }
+
+    // 2. Parse word/_rels/document.xml.rels to map rId to media data
+    const relsFile = zip.files['word/_rels/document.xml.rels'];
+    if (relsFile) {
+      try {
+        const relsXml = await relsFile.async('text');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(relsXml, 'text/xml');
+        const relElements = Array.from(doc.querySelectorAll('Relationship'));
+
+        relElements.forEach((rel) => {
+          const id = rel.getAttribute('Id') || '';
+          const target = rel.getAttribute('Target') || '';
+          if (!id || !target) return;
+
+          // Target might be "media/image1.png" or "media/image004.png"
+          const directMatch =
+            mediaMap.get(target) ||
+            mediaMap.get(target.toLowerCase()) ||
+            mediaMap.get(target.split('/').pop() || '') ||
+            mediaMap.get((target.split('/').pop() || '').toLowerCase()) ||
+            mediaMap.get(`word/${target}`) ||
+            mediaMap.get(`word/${target.toLowerCase()}`);
+
+          if (directMatch) {
+            relMap.set(id, directMatch);
+            relMap.set(id.toLowerCase(), directMatch);
+          }
+        });
+      } catch (e) {
+        console.warn('Error parsing document.xml.rels:', e);
+      }
+    }
+
+    // 3. Parse word/document.xml to map table cells to embedded images
+    const docXmlFile = zip.files['word/document.xml'];
+    if (docXmlFile) {
+      try {
+        const docXml = await docXmlFile.async('text');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(docXml, 'text/xml');
+        const tables = Array.from(doc.querySelectorAll('tbl'));
+
+        tables.forEach((tbl, tIdx) => {
+          const rows = Array.from(tbl.querySelectorAll('tr'));
+          rows.forEach((tr, rIdx) => {
+            const cells = Array.from(tr.querySelectorAll('tc'));
+            cells.forEach((tc, cIdx) => {
+              // Check drawing blip r:embed or r:link
+              const blips = Array.from(tc.querySelectorAll('blip, a\\:blip'));
+              for (const blip of blips) {
+                const embedId =
+                  blip.getAttribute('r:embed') ||
+                  blip.getAttribute('embed') ||
+                  blip.getAttribute('r:link') ||
+                  blip.getAttribute('link') ||
+                  '';
+                if (embedId && relMap.has(embedId)) {
+                  const imgData = relMap.get(embedId)!;
+                  cellImages.set(`${tIdx}_${rIdx}_${cIdx}`, imgData);
+                  cellImages.set(`r_${rIdx}_c_${cIdx}`, imgData);
+                  cellImages.set(`row_${rIdx}`, imgData);
+                  break;
+                }
+              }
+
+              // Check VML shape imagedata r:id
+              const vmlImgs = Array.from(tc.querySelectorAll('imagedata, v\\:imagedata'));
+              for (const vml of vmlImgs) {
+                const rid =
+                  vml.getAttribute('r:id') ||
+                  vml.getAttribute('id') ||
+                  vml.getAttribute('r:href') ||
+                  vml.getAttribute('src') ||
+                  '';
+                if (rid) {
+                  const imgData = relMap.get(rid) || mediaMap.get(rid) || mediaMap.get(rid.toLowerCase());
+                  if (imgData) {
+                    cellImages.set(`${tIdx}_${rIdx}_${cIdx}`, imgData);
+                    cellImages.set(`r_${rIdx}_c_${cIdx}`, imgData);
+                    cellImages.set(`row_${rIdx}`, imgData);
+                    break;
+                  }
+                }
+              }
+            });
+          });
+        });
+      } catch (e) {
+        console.warn('Error mapping cells from document.xml:', e);
+      }
+    }
+  } catch (err) {
+    console.warn('File is not a valid docx ZIP or JSZip failed:', err);
+  }
+
+  return { mediaMap, relMap, cellImages, orderedImages };
+}
+
+/**
+ * Extract image source from cell DOM node or fallback string, resolving via docx media maps
+ */
+function extractImageSrcFromCell(
+  cellNode: Element | null,
+  fallbackRaw: string,
+  docxData?: DocxArchiveData
+): string {
   if (cellNode) {
     const imgEl = cellNode.querySelector('img');
     if (imgEl && imgEl.getAttribute('src')) {
-      return imgEl.getAttribute('src')!;
+      const src = imgEl.getAttribute('src')!;
+      if (isValidImageSrc(src)) return src;
+      // If src is a filename, try lookup in mediaMap
+      if (docxData) {
+        const resolved =
+          docxData.mediaMap.get(src) ||
+          docxData.mediaMap.get(src.toLowerCase()) ||
+          docxData.mediaMap.get(src.split('/').pop() || '') ||
+          docxData.mediaMap.get((src.split('/').pop() || '').toLowerCase()) ||
+          docxData.relMap.get(src);
+        if (resolved) return resolved;
+      }
+      return src;
     }
+
     const vmlImg = cellNode.querySelector('v\\:imagedata, imagedata');
-    if (vmlImg && vmlImg.getAttribute('src')) {
-      return vmlImg.getAttribute('src')!;
+    if (vmlImg) {
+      const src = vmlImg.getAttribute('src') || vmlImg.getAttribute('r:id') || '';
+      if (src) {
+        if (isValidImageSrc(src)) return src;
+        if (docxData) {
+          const resolved =
+            docxData.mediaMap.get(src) ||
+            docxData.mediaMap.get(src.toLowerCase()) ||
+            docxData.relMap.get(src);
+          if (resolved) return resolved;
+        }
+        return src;
+      }
     }
   }
+
+  if (docxData && fallbackRaw) {
+    const trimmed = fallbackRaw.trim();
+    const resolved =
+      docxData.mediaMap.get(trimmed) ||
+      docxData.mediaMap.get(trimmed.toLowerCase()) ||
+      docxData.mediaMap.get(trimmed.split('/').pop() || '') ||
+      docxData.mediaMap.get((trimmed.split('/').pop() || '').toLowerCase());
+    if (resolved) return resolved;
+  }
+
   return fallbackRaw;
 }
 
@@ -35,7 +241,6 @@ function extractAudioSrcFromCell(cellNode: Element | null, fallbackRaw: string):
 
 /**
  * Helper to process and format a question based on its specified type or auto-detected type from KUNCI / options.
- * Handles: pilihan_ganda, pg_kompleks, menjodohkan, benar_salah, setuju_tidak_setuju, isian_singkat, uraian_pendek, etc.
  */
 function processFinalQuestion(
   q: Partial<Question>,
@@ -81,7 +286,7 @@ function processFinalQuestion(
     ) {
       q.type = 'setuju_tidak_setuju';
     } else if (
-      /^(?:[A-E1-9]\s*[\-\:\=\>]+\s*[A-E1-9])(?:\s*[\,\;\s]\s*[A-E1-9]\s*[\-\:\=\>]+\s*[A-E1-9])*$/i.test(cleanKunci)
+      /^(?:[A-E1-9]\s*(?:=>|->|[\-\:\=])\s*[A-E1-9])(?:\s*[\,\;\s]\s*[A-E1-9]\s*(?:=>|->|[\-\:\=])\s*[A-E1-9])*$/i.test(cleanKunci)
     ) {
       q.type = 'menjodohkan';
     } else if (cleanKunci.split(/[\,\;\s\+]+/).filter((x) => /^[A-E]$/i.test(x)).length > 1) {
@@ -152,41 +357,71 @@ function processFinalQuestion(
     const pairs: { id: string; leftItem: string; rightItem: string }[] = [];
 
     rawOptions.forEach((opt, idx) => {
-      const matchDelimiter = opt.text.match(/^(.*?)\s*(?:[\=\>]|\=\>|\-\>|\||\:)\s*(.*)$/);
-      if (matchDelimiter && matchDelimiter[1] && matchDelimiter[2]) {
+      const split = splitMatchingPairText(opt.text);
+      if (split) {
         pairs.push({
           id: `pair_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
-          leftItem: matchDelimiter[1].trim(),
-          rightItem: matchDelimiter[2].trim(),
+          leftItem: split.left,
+          rightItem: split.right,
         });
       } else {
         pairs.push({
           id: `pair_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
-          leftItem: opt.text.trim(),
+          leftItem: opt.text.trim() || `Pernyataan ${idx + 1}`,
           rightItem: `Pasangan ${idx + 1}`,
         });
       }
     });
 
-    // Parse explicit key pairs from KUNCI if present e.g. "A-1, B-2, C-3"
+    // Parse explicit key pairs from KUNCI if present e.g. "A-1, B-2, C-3" or "1-D, 2-C, 3-B"
     if (pairs.length > 0 && cleanKunci) {
       const keyPairMatches = cleanKunci.split(/[\,\;\s]+/);
       keyPairMatches.forEach((kp) => {
-        const m = kp.match(/([A-Ea-e])\s*[\-\:\=\>]\s*([A-Ea-e1-9]|.+)/);
+        const m = kp.match(/([A-Ea-e1-9])\s*(?:=>|->|[\-\:\=])\s*([A-Ea-e1-9]|.+)/);
         if (m) {
-          const leftLetter = m[1].toUpperCase();
-          const rightVal = m[2].trim();
-          const leftIndex = leftLetter.charCodeAt(0) - 65;
-          if (pairs[leftIndex]) {
-            if (/^\d+$/.test(rightVal)) {
-              const rightIdx = parseInt(rightVal, 10) - 1;
-              if (rawOptions[rightIdx]) {
-                const rightOptText = rawOptions[rightIdx].text;
-                const rMatch = rightOptText.match(/^(.*?)\s*(?:[\=\>]|\=\>|\-\>|\||\:)\s*(.*)$/);
-                pairs[leftIndex].rightItem = rMatch && rMatch[2] ? rMatch[2].trim() : rightOptText.trim();
+          const first = m[1];
+          const second = m[2].trim();
+
+          // Case 1: "1-D" or "1-A"
+          if (/^\d+$/.test(first)) {
+            const leftIdx = parseInt(first, 10) - 1;
+            if (pairs[leftIdx]) {
+              if (/^[A-Za-z]$/.test(second)) {
+                const rightIdx = second.toUpperCase().charCodeAt(0) - 65;
+                if (rawOptions[rightIdx]) {
+                  const splitR = splitMatchingPairText(rawOptions[rightIdx].text);
+                  pairs[leftIdx].rightItem = splitR ? splitR.right : rawOptions[rightIdx].text.trim();
+                } else {
+                  pairs[leftIdx].rightItem = second.toUpperCase();
+                }
+              } else {
+                pairs[leftIdx].rightItem = second;
               }
-            } else {
-              pairs[leftIndex].rightItem = rightVal;
+            }
+          }
+          // Case 2: "A-1" or "A-D"
+          else if (/^[A-Za-z]$/.test(first)) {
+            const leftIdx = first.toUpperCase().charCodeAt(0) - 65;
+            if (pairs[leftIdx]) {
+              if (/^\d+$/.test(second)) {
+                const rightIdx = parseInt(second, 10) - 1;
+                if (rawOptions[rightIdx]) {
+                  const splitR = splitMatchingPairText(rawOptions[rightIdx].text);
+                  pairs[leftIdx].rightItem = splitR ? splitR.right : rawOptions[rightIdx].text.trim();
+                } else {
+                  pairs[leftIdx].rightItem = `Pasangan ${second}`;
+                }
+              } else if (/^[A-Za-z]$/.test(second)) {
+                const rightIdx = second.toUpperCase().charCodeAt(0) - 65;
+                if (rawOptions[rightIdx]) {
+                  const splitR = splitMatchingPairText(rawOptions[rightIdx].text);
+                  pairs[leftIdx].rightItem = splitR ? splitR.right : rawOptions[rightIdx].text.trim();
+                } else {
+                  pairs[leftIdx].rightItem = second.toUpperCase();
+                }
+              } else {
+                pairs[leftIdx].rightItem = second;
+              }
             }
           }
         }
@@ -200,8 +435,8 @@ function processFinalQuestion(
         : [
             {
               id: `pair_${Date.now()}`,
-              leftItem: 'Item Kiri 1',
-              rightItem: 'Pasangan Kanan 1',
+              leftItem: 'Pernyataan 1',
+              rightItem: 'Pasangan 1',
             },
           ];
     delete q.options;
@@ -238,12 +473,12 @@ function processFinalQuestion(
       const isCorrect = opt.isCorrect || keyLetters.has(letter) || keyLetters.has(opt.letter);
       return {
         id: `opt_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
-        text: opt.text,
+        text: opt.text || `Pilihan ${letter}`,
         isCorrect,
       };
     });
 
-    if (!options.some((o) => o.isCorrect) && options.length > 0) {
+    if (options.length > 0 && !options.some((o) => o.isCorrect)) {
       options[0].isCorrect = true;
     }
 
@@ -260,28 +495,50 @@ function processFinalQuestion(
 export async function parseQuestionsFromWord(file: File): Promise<Partial<Question>[]> {
   let html = '';
   let rawText = '';
+  let docxData: DocxArchiveData = {
+    mediaMap: new Map(),
+    relMap: new Map(),
+    cellImages: new Map(),
+    orderedImages: [],
+  };
 
-  // 1. Try Mammoth conversion for standard .docx files
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const htmlResult = await mammoth.convertToHtml(
-      { arrayBuffer },
-      {
-        convertImage: mammoth.images.imgElement((image) => {
-          return image.read('base64').then((imageBuffer) => ({
-            src: `data:${image.contentType};base64,${imageBuffer}`,
-          }));
-        }),
-      }
-    );
-    const rawTextResult = await mammoth.extractRawText({ arrayBuffer });
-    html = htmlResult.value || '';
-    rawText = rawTextResult.value || '';
-  } catch (mammothErr) {
-    console.warn('Mammoth parsing note (file might be HTML/DOC text):', mammothErr);
+
+    // 1. Extract embedded media, relationships, and cell drawings via JSZip
+    docxData = await extractDocxArchive(arrayBuffer);
+
+    // 2. Convert standard .docx via Mammoth
+    try {
+      const htmlResult = await mammoth.convertToHtml(
+        { arrayBuffer },
+        {
+          convertImage: mammoth.images.imgElement((image) => {
+            return image.read('base64').then((imageBuffer) => {
+              let mime = image.contentType || 'image/png';
+              if (imageBuffer.startsWith('iVBORw0KGgo')) mime = 'image/png';
+              else if (imageBuffer.startsWith('/9j/')) mime = 'image/jpeg';
+              else if (imageBuffer.startsWith('R0lGOD')) mime = 'image/gif';
+              else if (imageBuffer.startsWith('UklGR')) mime = 'image/webp';
+              else if (imageBuffer.startsWith('PHN2Zw') || imageBuffer.startsWith('PD94bWw')) mime = 'image/svg+xml';
+              return {
+                src: `data:${mime};base64,${imageBuffer}`,
+              };
+            });
+          }),
+        }
+      );
+      const rawTextResult = await mammoth.extractRawText({ arrayBuffer });
+      html = htmlResult.value || '';
+      rawText = rawTextResult.value || '';
+    } catch (mammothErr) {
+      console.warn('Mammoth conversion note:', mammothErr);
+    }
+  } catch (e) {
+    console.warn('ArrayBuffer error:', e);
   }
 
-  // 2. Fallback: Read file as text if Mammoth returned empty (e.g. .doc, .html, or plain text template)
+  // 3. Fallback: Read file as text if Mammoth returned empty (e.g. .doc, .html, or plain text template)
   if (!html && !rawText) {
     try {
       const fileText = await file.text();
@@ -294,28 +551,45 @@ export async function parseQuestionsFromWord(file: File): Promise<Partial<Questi
     }
   }
 
-  // 3. Parse HTML content if available
+  // 4. Parse HTML content if available
   if (html) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // 3a. Try parsing HTML tables first
+    // Resolve any relative or filename img sources using extracted mediaMap
+    const allImgs = Array.from(doc.querySelectorAll('img'));
+    allImgs.forEach((img) => {
+      const src = img.getAttribute('src') || '';
+      if (src && !src.startsWith('data:')) {
+        const resolved =
+          docxData.mediaMap.get(src) ||
+          docxData.mediaMap.get(src.toLowerCase()) ||
+          docxData.mediaMap.get(src.split('/').pop() || '') ||
+          docxData.mediaMap.get((src.split('/').pop() || '').toLowerCase()) ||
+          docxData.relMap.get(src);
+        if (resolved) {
+          img.setAttribute('src', resolved);
+        }
+      }
+    });
+
+    // 4a. Try parsing HTML tables first
     const tables = Array.from(doc.querySelectorAll('table'));
     if (tables.length > 0) {
-      const tableQuestions = parseFromHtmlTables(tables);
+      const tableQuestions = parseFromHtmlTables(tables, docxData);
       if (tableQuestions.length > 0) {
         return tableQuestions;
       }
     }
 
-    // 3b. Try parsing HTML paragraphs/elements
-    const htmlQuestions = parseFromHtmlElements(doc);
+    // 4b. Try parsing HTML paragraphs/elements
+    const htmlQuestions = parseFromHtmlElements(doc, docxData);
     if (htmlQuestions.length > 0) {
       return htmlQuestions;
     }
   }
 
-  // 4. Fallback to raw text line parsing
+  // 5. Fallback to raw text line parsing
   if (rawText) {
     const textLines = rawText
       .split('\n')
@@ -340,8 +614,28 @@ function cleanRawText(text: string): string {
 /**
  * Extracts content from an HTML cell, preserving <img> tags and rich formatting
  */
-function extractCellContent(cell: Element): string {
+function extractCellContent(cell: Element, docxData?: DocxArchiveData): string {
   if (!cell) return '';
+
+  // Check if cell has images and resolve them
+  if (docxData) {
+    const imgs = Array.from(cell.querySelectorAll('img'));
+    imgs.forEach((img) => {
+      const src = img.getAttribute('src') || '';
+      if (src && !src.startsWith('data:')) {
+        const resolved =
+          docxData.mediaMap.get(src) ||
+          docxData.mediaMap.get(src.toLowerCase()) ||
+          docxData.mediaMap.get(src.split('/').pop() || '') ||
+          docxData.mediaMap.get((src.split('/').pop() || '').toLowerCase()) ||
+          docxData.relMap.get(src);
+        if (resolved) {
+          img.setAttribute('src', resolved);
+        }
+      }
+    });
+  }
+
   const hasImg = cell.querySelector('img') !== null;
   const hasRich = cell.querySelector('p, table, ul, ol, li, b, i, u, sub, sup') !== null;
 
@@ -354,7 +648,7 @@ function extractCellContent(cell: Element): string {
 /**
  * Parses questions from HTML tables (both Multi-column horizontal and CBT vertical tables)
  */
-function parseFromHtmlTables(tables: HTMLTableElement[]): Partial<Question>[] {
+function parseFromHtmlTables(tables: HTMLTableElement[], docxData?: DocxArchiveData): Partial<Question>[] {
   const allQuestions: Partial<Question>[] = [];
 
   // 1. Check if any table is multi-column horizontal layout
@@ -376,7 +670,7 @@ function parseFromHtmlTables(tables: HTMLTableElement[]): Partial<Question>[] {
     allRows.push(...rows);
   }
 
-  const verticalQuestions = parseVerticalCbtTable(allRows);
+  const verticalQuestions = parseVerticalCbtTable(allRows, docxData);
   if (verticalQuestions.length > 0) {
     return verticalQuestions;
   }
@@ -391,11 +685,9 @@ function parseMultiColumnTable(rows: HTMLElement[]): Partial<Question>[] {
   const questions: Partial<Question>[] = [];
   if (rows.length < 2) return questions;
 
-  // 1. A multi-column horizontal table MUST have at least 3 columns!
   const sampleCells = Array.from(rows[0].querySelectorAll('td, th'));
   if (sampleCells.length < 3) return [];
 
-  // 2. Check if table contains CBT macro keys in Column 0
   const hasCbtTags = rows.some((row) => {
     const cells = Array.from(row.querySelectorAll('td, th')).map((c) => (c.textContent || '').trim().toUpperCase());
     if (cells.length < 1) return false;
@@ -513,11 +805,12 @@ function parseMultiColumnTable(rows: HTMLElement[]): Partial<Question>[] {
 /**
  * Parses vertical CBT table format (Word Macro layout)
  */
-function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
+function parseVerticalCbtTable(rows: HTMLElement[], docxData?: DocxArchiveData): Partial<Question>[] {
   const questions: Partial<Question>[] = [];
   let currentQ: Partial<Question> | null = null;
   let rawOptions: { letter: string; text: string; isCorrect: boolean }[] = [];
   let kunciText = '';
+  let consumedImageIndex = 0;
 
   const finalizeCurrentQ = () => {
     if (currentQ && (currentQ.questionText || rawOptions.length > 0)) {
@@ -543,12 +836,12 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     }
   };
 
-  rows.forEach((row) => {
+  rows.forEach((row, rIdx) => {
     const rawCells = Array.from(row.querySelectorAll('td, th'));
     if (rawCells.length < 1) return;
 
     const col1Raw = (rawCells[0].textContent || '').trim();
-    const col2Raw = rawCells.length > 1 ? extractCellContent(rawCells[1]) : extractCellContent(rawCells[0]);
+    const col2Raw = rawCells.length > 1 ? extractCellContent(rawCells[1], docxData) : extractCellContent(rawCells[0], docxData);
     const col1Clean = col1Raw.toUpperCase().replace(/[\.\:\)\s]+$/, '').trim();
 
     const numMatch =
@@ -577,9 +870,14 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     const isStimulus =
       col1Clean.includes('STIMULUS') || col1Clean.includes('TEKS') || col1Clean.includes('BACAAN');
     const isStimulusGambar =
-      col1Clean.includes('STIMULUS_GAMBAR') || col1Clean.includes('GAMBAR_STIMULUS') || col1Clean.includes('IMAGE_STIMULUS');
+      col1Clean.includes('STIMULUS_GAMBAR') ||
+      col1Clean.includes('GAMBAR_STIMULUS') ||
+      col1Clean.includes('IMAGE_STIMULUS') ||
+      col1Clean.includes('STIMULUS_FOTO');
     const isStimulusAudio =
-      col1Clean.includes('STIMULUS_AUDIO') || col1Clean.includes('AUDIO_STIMULUS') || col1Clean.includes('SOUND_STIMULUS');
+      col1Clean.includes('STIMULUS_AUDIO') ||
+      col1Clean.includes('AUDIO_STIMULUS') ||
+      col1Clean.includes('SOUND_STIMULUS');
     const isAudio =
       col1Clean.includes('AUDIO') || col1Clean.includes('SUARA') || col1Clean.includes('SOUND');
     const isGambar =
@@ -589,18 +887,17 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     const isBobot = col1Clean.includes('BOBOT') || col1Clean.includes('NILAI');
 
     if (isSoalHeader) {
-      // If currentQ already has question text or options, this is a NEW question
       if (currentQ && (currentQ.questionText || rawOptions.length > 0)) {
         finalizeCurrentQ();
       }
       ensureCurrentQ();
-      const col2PlainText = rawCells.length > 1 ? (rawCells[1].textContent || '') : col1Raw;
+      const col2PlainText = rawCells.length > 1 ? rawCells[1].textContent || '' : col1Raw;
       if (col2Raw && col2PlainText.trim().toUpperCase() !== 'SOAL') {
         currentQ.questionText = col2Raw;
       }
     } else if (optMatch) {
       ensureCurrentQ();
-      let optText = rawCells.length > 1 ? extractCellContent(rawCells[1]) : col2Raw;
+      let optText = rawCells.length > 1 ? extractCellContent(rawCells[1], docxData) : col2Raw;
       let isCorrect = false;
 
       if (col1Raw.startsWith('*') || optText.startsWith('*')) {
@@ -626,71 +923,88 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
     } else if (isPembahasan) {
       ensureCurrentQ();
       currentQ.discussion = col2Raw;
-    } else if (isStimulusGambar) {
+    } else if (isStimulusGambar || (isGambar && !isSoalHeader)) {
       ensureCurrentQ();
       const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
-      const imgSrc = getCleanImageSrc(extractImageSrcFromCell(cellNode, col2Raw));
-      currentQ.stimulus = { type: 'image', content: imgSrc };
-    } else if (isStimulusAudio) {
-      ensureCurrentQ();
-      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
-      const audioSrc = getCleanMediaSrc(extractAudioSrcFromCell(cellNode, col2Raw));
-      currentQ.stimulus = { type: 'audio', content: audioSrc };
-    } else if (isAudio) {
-      ensureCurrentQ();
-      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
-      const audioSrc = getCleanMediaSrc(extractAudioSrcFromCell(cellNode, col2Raw));
-      currentQ.stimulus = { type: 'audio', content: audioSrc };
-      currentQ.type = 'pilihan_audio';
-    } else if (isGambar && !isStimulusGambar) {
-      ensureCurrentQ();
-      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
-      const imgSrc = getCleanImageSrc(extractImageSrcFromCell(cellNode, col2Raw));
-      if (currentQ.type !== 'pilihan_gambar') {
+      let imgSrc = getCleanImageSrc(extractImageSrcFromCell(cellNode, col2Raw, docxData));
+
+      // If not valid yet, check if cell has an XML mapped drawing image
+      if (!isValidImageSrc(imgSrc) && docxData) {
+        const cellXmlImg = docxData.cellImages.get(`row_${rIdx}`) || docxData.cellImages.get(`r_${rIdx}_c_1`);
+        if (cellXmlImg) {
+          imgSrc = cellXmlImg;
+        } else if (docxData.orderedImages.length > consumedImageIndex) {
+          imgSrc = docxData.orderedImages[consumedImageIndex];
+          consumedImageIndex++;
+        }
+      }
+
+      if (isValidImageSrc(imgSrc)) {
         currentQ.stimulus = { type: 'image', content: imgSrc };
+      } else if (isLocalWordImagePath(imgSrc) || isLocalWordImagePath(col2Raw)) {
+        currentQ.stimulus = { type: 'image', content: imgSrc || col2Raw };
+      } else if (col2Raw && col2Raw.trim()) {
+        currentQ.stimulus = { type: 'text', content: col2Raw };
+      }
+    } else if (isStimulusAudio || (isAudio && !isSoalHeader)) {
+      ensureCurrentQ();
+      const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
+      const audioSrc = getCleanMediaSrc(extractAudioSrcFromCell(cellNode, col2Raw));
+      if (audioSrc) {
+        currentQ.stimulus = { type: 'audio', content: audioSrc };
+        if (isAudio) currentQ.type = 'pilihan_audio';
       }
     } else if (isStimulus) {
       ensureCurrentQ();
       const cellNode = rawCells.length > 1 ? rawCells[1] : rawCells[0];
-      const imgSrc = extractImageSrcFromCell(cellNode, '');
-      if (imgSrc) {
-        currentQ.stimulus = { type: 'image', content: getCleanImageSrc(imgSrc) };
-      } else {
+      let imgSrc = getCleanImageSrc(extractImageSrcFromCell(cellNode, '', docxData));
+
+      if (!isValidImageSrc(imgSrc) && docxData) {
+        const cellXmlImg = docxData.cellImages.get(`row_${rIdx}`) || docxData.cellImages.get(`r_${rIdx}_c_1`);
+        if (cellXmlImg) {
+          imgSrc = cellXmlImg;
+        }
+      }
+
+      if (isValidImageSrc(imgSrc)) {
+        currentQ.stimulus = { type: 'image', content: imgSrc };
+      } else if (col2Raw && col2Raw.trim()) {
         currentQ.stimulus = { type: 'text', content: col2Raw };
       }
     } else if (isTipe) {
       ensureCurrentQ();
       const typeStr = col2Raw.toLowerCase();
       if (typeStr.includes('kompleks')) currentQ.type = 'pg_kompleks';
-      else if (typeStr.includes('audio') || typeStr.includes('suara')) currentQ.type = 'pilihan_audio';
-      else if (typeStr.includes('gambar') || typeStr.includes('foto')) currentQ.type = 'pilihan_gambar';
       else if (typeStr.includes('benar') || typeStr.includes('salah')) currentQ.type = 'benar_salah';
       else if (typeStr.includes('setuju')) currentQ.type = 'setuju_tidak_setuju';
-      else if (typeStr.includes('jodoh')) currentQ.type = 'menjodohkan';
-      else if (typeStr.includes('isian')) currentQ.type = 'isian_singkat';
-      else if (typeStr.includes('uraian')) currentQ.type = 'uraian_pendek';
-      else if (typeStr.includes('angka')) currentQ.type = 'isian_angka';
+      else if (typeStr.includes('jodoh') || typeStr.includes('pasang')) currentQ.type = 'menjodohkan';
+      else if (typeStr.includes('drag') || typeStr.includes('drop')) currentQ.type = 'drag_drop';
       else if (typeStr.includes('urut')) currentQ.type = 'mengurutkan';
-      else currentQ.type = 'pilihan_ganda';
-
+      else if (typeStr.includes('check') || typeStr.includes('centang')) currentQ.type = 'checklist';
+      else if (typeStr.includes('lengkapi') || typeStr.includes('kalimat')) currentQ.type = 'melengkapi_kalimat';
+      else if (typeStr.includes('angka')) currentQ.type = 'isian_angka';
+      else if (typeStr.includes('isian')) currentQ.type = 'isian_singkat';
+      else if (typeStr.includes('uraian') && typeStr.includes('panjang')) currentQ.type = 'uraian_panjang';
+      else if (typeStr.includes('uraian') || typeStr.includes('esai') || typeStr.includes('essay')) currentQ.type = 'uraian_pendek';
+      else if (typeStr.includes('audio')) currentQ.type = 'pilihan_audio';
+      else if (typeStr.includes('video')) currentQ.type = 'pilihan_video';
+      else if (typeStr.includes('gambar')) currentQ.type = 'pilihan_gambar';
       (currentQ as any).isTypeExplicit = true;
     } else if (isKategori) {
       ensureCurrentQ();
       const catStr = col2Raw.toLowerCase();
       if (catStr.includes('num')) currentQ.category = 'Numerasi';
       else if (catStr.includes('sain')) currentQ.category = 'Sains';
-      else if (catStr.includes('sosial')) currentQ.category = 'Sosial Budaya';
+      else if (catStr.includes('sosial') || catStr.includes('budaya')) currentQ.category = 'Sosial Budaya';
       else currentQ.category = 'Literasi';
     } else if (isBobot) {
       ensureCurrentQ();
-      const weightVal = parseInt((rawCells.length > 1 ? rawCells[1].textContent : col2Raw) || '10', 10);
-      if (!isNaN(weightVal)) currentQ.weight = weightVal;
-    } else if (col2Raw.trim() && !optMatch && !isKunci && !isPembahasan && !isStimulus) {
-      ensureCurrentQ();
-      if (!currentQ.questionText) {
+      const parsedW = parseInt(col2Raw, 10);
+      if (!isNaN(parsedW)) currentQ.weight = parsedW;
+    } else if (currentQ) {
+      // Append text to question text if not already populated
+      if (col2Raw && !currentQ.questionText) {
         currentQ.questionText = col2Raw;
-      } else if (rawOptions.length === 0) {
-        currentQ.questionText += '<br/>' + col2Raw;
       }
     }
   });
@@ -700,28 +1014,105 @@ function parseVerticalCbtTable(rows: HTMLElement[]): Partial<Question>[] {
 }
 
 /**
- * Extract lines from HTML DOM nodes (p, div, li, tr)
+ * Parses questions from HTML elements (paragraphs, headers, lists)
  */
-function parseFromHtmlElements(doc: Document): Partial<Question>[] {
-  const lines: string[] = [];
-  const nodes = doc.querySelectorAll('p, div, li, tr, h1, h2, h3, h4');
+function parseFromHtmlElements(doc: Document, docxData?: DocxArchiveData): Partial<Question>[] {
+  const container = doc.body;
+  const elements = Array.from(container.children);
+  const questions: Partial<Question>[] = [];
+  let currentQ: Partial<Question> | null = null;
+  let rawOptions: { letter: string; text: string; isCorrect: boolean }[] = [];
+  let kunciText = '';
+  let pendingStimulus = '';
 
-  nodes.forEach((node) => {
-    const txt = (node.textContent || '').trim();
-    if (txt) {
-      lines.push(txt);
+  const finalizeCurrentQ = () => {
+    if (currentQ && (currentQ.questionText || rawOptions.length > 0)) {
+      const processed = processFinalQuestion(currentQ, rawOptions, kunciText);
+      questions.push(processed);
+    }
+    currentQ = null;
+    rawOptions = [];
+    kunciText = '';
+  };
+
+  const ensureCurrentQ = () => {
+    if (!currentQ) {
+      currentQ = {
+        type: 'pilihan_ganda',
+        category: 'Literasi',
+        cognitiveLevel: 'Aplikasi (L2)',
+        difficulty: 'Sedang',
+        weight: 10,
+        questionText: '',
+        stimulus: pendingStimulus ? { type: 'text', content: pendingStimulus } : undefined,
+        createdAt: new Date().toISOString(),
+      };
+      pendingStimulus = '';
+    }
+  };
+
+  elements.forEach((el) => {
+    const text = (el.textContent || '').trim();
+    if (!text && !el.querySelector('img')) return;
+
+    const qNumMatch = text.match(/^(?:Soal|No|Nomor|Pertanyaan)?\s*(\d+)[\.\:\)]\s*(.*)/i);
+    const optMatch = text.match(/^([\*\#\>])?\s*([A-Ea-e])[\.\:\)]\s*(.*)/i);
+    const kunciMatch = text.match(/^(?:KUNCI JAWABAN|KUNCI|JAWABAN|ANS|KEY)\s*[\:\=\-]?\s*(.*)/i);
+    const tipeMatch = text.match(/^(?:TIPE|JENIS SOAL|TIPE SOAL)\s*[\:\=\-]?\s*(.*)/i);
+    const pembahasanMatch = text.match(/^(?:PEMBAHASAN|ALASAN|DISCUSSION|PENJELASAN)\s*[\:\=\-]?\s*(.*)/i);
+    const stimulusMatch = text.match(/^(?:STIMULUS|TEKS BACAAN|BACAAN)\s*[\:\=\-]?\s*(.*)/i);
+
+    if (stimulusMatch) {
+      pendingStimulus = stimulusMatch[1] || text;
+      if (currentQ) {
+        currentQ.stimulus = { type: 'text', content: pendingStimulus };
+      }
+    } else if (qNumMatch) {
+      finalizeCurrentQ();
+      ensureCurrentQ();
+      currentQ!.questionText = qNumMatch[2] || extractCellContent(el, docxData);
+    } else if (tipeMatch && currentQ) {
+      const typeStr = (tipeMatch[1] || '').toLowerCase();
+      if (typeStr.includes('kompleks')) currentQ.type = 'pg_kompleks';
+      else if (typeStr.includes('benar') || typeStr.includes('salah')) currentQ.type = 'benar_salah';
+      else if (typeStr.includes('setuju')) currentQ.type = 'setuju_tidak_setuju';
+      else if (typeStr.includes('jodoh')) currentQ.type = 'menjodohkan';
+      else if (typeStr.includes('isian')) currentQ.type = 'isian_singkat';
+      else if (typeStr.includes('uraian')) currentQ.type = 'uraian_pendek';
+    } else if (optMatch && currentQ) {
+      let optionText = optMatch[3] || extractCellContent(el, docxData);
+      let isCorrect = false;
+
+      if (optMatch[1] || optionText.startsWith('*')) {
+        if (optionText.startsWith('*')) optionText = optionText.substring(1).trim();
+        isCorrect = true;
+      }
+
+      rawOptions.push({
+        letter: optMatch[2].toUpperCase(),
+        text: optionText,
+        isCorrect,
+      });
+    } else if (kunciMatch && currentQ) {
+      kunciText = kunciMatch[1] || '';
+    } else if (pembahasanMatch && currentQ) {
+      currentQ.discussion = pembahasanMatch[1] || extractCellContent(el, docxData);
+    } else if (currentQ) {
+      if (rawOptions.length === 0) {
+        currentQ.questionText = (currentQ.questionText ? currentQ.questionText + '\n' : '') + extractCellContent(el, docxData);
+      }
     }
   });
 
-  return parseFromLines(lines);
+  finalizeCurrentQ();
+  return questions;
 }
 
 /**
- * Universal line-by-line parser for standard text / paragraph formatted questions
+ * Parses questions from plain text lines
  */
 function parseFromLines(lines: string[]): Partial<Question>[] {
   const questions: Partial<Question>[] = [];
-
   let currentQ: Partial<Question> | null = null;
   let rawOptions: { letter: string; text: string; isCorrect: boolean }[] = [];
   let kunciText = '';
@@ -851,7 +1242,8 @@ export function downloadWordTemplate() {
   1. <b>Format Tabel</b>: Setiap soal ditulis dalam bentuk <b>Tabel 2 Kolom Continuous</b>.<br/>
   2. <b>Kolom Kiri</b>: Berisi Nomor Soal (<code>1.</code>, <code>2.</code>, dst), Huruf Pilihan (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>E</code>), atau Tag Metadata (<code>TIPE</code>, <code>KATEGORI</code>, <code>BOBOT</code>, <code>STIMULUS</code>, <code>STIMULUS_GAMBAR</code>, <code>STIMULUS_AUDIO</code>, <code>KUNCI</code>, <code>PEMBAHASAN</code>).<br/>
   3. <b>Dukungan Media Gambar &amp; Audio</b>:<br/>
-     - <b>Gambar pada Soal / Opsi</b>: Sisipkan/Insert gambar langsung ke dalam sel tabel Word <i>ATAU</i> tulis tag <code>STIMULUS_GAMBAR</code> dengan isi URL/Link gambar.<br/>
+     - <b>Gambar pada Soal / Opsi</b>: Sisipkan/Insert gambar langsung ke dalam sel tabel Word (Gunakan menu <b>Insert &gt; Picture</b>) <i>ATAU</i> tulis tag <code>STIMULUS_GAMBAR</code> dengan isi URL/Link gambar.<br/>
+     - <b>Penting</b>: Setelah mengedit, simpan file sebagai <b>Word Document (*.docx)</b> agar gambar tersimpan secara permanen di dalam file dokumen.<br/>
      - <b>Audio Listening / MP3</b>: Tulis tag <code>STIMULUS_AUDIO</code> dengan isi URL audio (contoh: <code>https://example.com/audio.mp3</code>) <i>ATAU</i> set <code>TIPE</code> = <code>Pilihan Audio</code>.<br/>
   4. <b>Dukungan Tipe Soal AKM</b>:<br/>
      - <b>Pilihan Ganda</b>: <code>KUNCI</code> diisi 1 huruf (contoh: <code>B</code>).<br/>
@@ -1176,10 +1568,9 @@ export function downloadWordTemplate() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'Template_Soal_BAHASA_INDONESIA_1_Word_Macro_CBT.doc';
+  a.download = 'Template_Soal_TKA_CBT_Word_Macro.doc';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
